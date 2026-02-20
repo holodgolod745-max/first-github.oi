@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Aura — Админ</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f7f6f3;--surface:#fff;--border:#e4e1da;--border2:#ccc9c0;
+  --text:#181714;--muted:#9a9790;
+  --accent:#1e6b3c;--accent-l:#e8f4ed;
+  --red:#c0392b;--red-l:#fdecea;
+  --orange:#d97706;--orange-l:#fef3e2;
+  --blue:#1d4ed8;--blue-l:#eff6ff;
+  --purple:#7c3aed;--purple-l:#f5f3ff;
+  --sh:0 1px 2px rgba(0,0,0,.05),0 3px 10px rgba(0,0,0,.06);
+  --tr:all .18s cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Geist Mono',monospace;background:var(--bg);color:var(--text);font-size:13px;min-height:100vh}
+
+/* LOCK */
+#lock{display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;flex-direction:column;align-items:center;justify-content:center}
+#lock.show{display:flex}
+.lock-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:36px;max-width:340px;width:90%;box-shadow:var(--sh);text-align:center}
+.lock-icon{font-size:36px;margin-bottom:14px}
+.lock-title{font-family:'Instrument Serif',serif;font-size:22px;margin-bottom:5px}
+.lock-sub{font-size:11px;color:var(--muted);margin-bottom:22px}
+.lock-inp{width:100%;background:var(--bg);border:1.5px solid var(--border2);border-radius:9px;padding:12px 14px;font-family:'Geist Mono',monospace;font-size:16px;text-align:center;letter-spacing:4px;outline:none;transition:var(--tr);margin-bottom:12px;color:var(--text)}
+.lock-inp:focus{border-color:var(--text)}
+.lock-btn{width:100%;padding:11px;background:var(--text);color:#fff;border:none;border-radius:9px;font-family:'Geist Mono',monospace;font-size:13px;cursor:pointer}
+.lock-btn:hover{opacity:.85}
+.lock-err{font-size:11px;color:var(--red);margin-top:8px;min-height:16px}
+
+/* LAYOUT */
+.layout{display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:220px;min-width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sb-brand{padding:16px 14px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px}
+.sb-mark{width:28px;height:28px;background:var(--text);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;overflow:hidden;flex-shrink:0}
+.sb-mark img{width:100%;height:100%;object-fit:cover}
+.sb-sitename{font-family:'Instrument Serif',serif;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.sb-badge{font-size:9px;letter-spacing:.8px;text-transform:uppercase;background:var(--text);color:#fff;padding:2px 6px;border-radius:3px;flex-shrink:0}
+.sb-nav{padding:8px;flex:1}
+.nav-label{font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);padding:10px 8px 4px}
+.nav-btn{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--muted);transition:var(--tr);margin-bottom:1px;border:none;background:none;width:100%;text-align:left;font-family:'Geist Mono',monospace;font-size:12px}
+.nav-btn:hover{background:var(--bg);color:var(--text)}
+.nav-btn.active{background:var(--text);color:#fff}
+.nav-icon{font-size:13px;width:16px;text-align:center;flex-shrink:0}
+.sb-bottom{padding:12px;border-top:1px solid var(--border)}
+.back-link{display:flex;align-items:center;gap:7px;text-decoration:none;color:var(--muted);font-size:12px;padding:8px 10px;border-radius:7px;transition:var(--tr)}
+.back-link:hover{background:var(--bg);color:var(--text)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;position:sticky;top:0;z-index:5;flex-shrink:0}
+.tb-title{font-family:'Instrument Serif',serif;font-size:19px;font-style:italic}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.status-pill{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:11px;border:1px solid}
+.status-pill.on{border-color:#c8dbc5;background:var(--accent-l);color:var(--accent)}
+.status-pill.off{border-color:#f0c4c0;background:var(--red-l);color:var(--red)}
+.sdot{width:6px;height:6px;border-radius:50%}
+.status-pill.on .sdot{background:var(--accent);animation:blink 2s infinite}
+.status-pill.off .sdot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.online-badge{display:flex;align-items:center;gap:5px;background:var(--accent-l);border:1px solid #c8dbc5;border-radius:20px;padding:4px 11px;font-size:11px;color:var(--accent)}
+.odot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 2s infinite}
+.save-all{padding:7px 15px;border-radius:8px;border:none;background:var(--text);color:#fff;font-family:'Geist Mono',monospace;font-size:12px;cursor:pointer;transition:opacity .15s}
+.save-all:hover{opacity:.85}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:24px}
+.content::-webkit-scrollbar{width:4px}
+.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.section{display:none}
+.section.active{display:block;animation:fadeS .18s ease}
+@keyframes fadeS{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.sec-title{font-family:'Instrument Serif',serif;font-size:22px;margin-bottom:3px}
+.sec-sub{font-size:11px;color:var(--muted);margin-bottom:22px;line-height:1.6}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:900px){.stats-grid{grid-template-columns:1fr 1fr}}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;box-shadow:var(--sh);transition:transform .15s}
+.stat:hover{transform:translateY(-2px)}
+.stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:5px}
+.stat-val{font-family:'Instrument Serif',serif;font-size:28px;line-height:1}
+.stat-hint{font-size:10px;color:var(--muted);margin-top:3px}
+.stat.green .stat-val{color:var(--accent)}
+.stat.blue .stat-val{color:var(--blue)}
+.stat.orange .stat-val{color:var(--orange)}
+
+/* GRID */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--sh);overflow:hidden;margin-bottom:16px}
+.card:last-child{margin-bottom:0}
+.card-head{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--bg)}
+.card-icon{font-size:14px}
+.card-title{font-size:13px;font-weight:500}
+.card-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.card-body{padding:18px}
+
+/* STATUS BANNER */
+.site-banner{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:10px;border:1.5px solid;margin-bottom:16px}
+.site-banner.on{background:var(--accent-l);border-color:#c8dbc5}
+.site-banner.off{background:var(--red-l);border-color:#f0c4c0}
+.sb-ico{font-size:22px}
+.sb-info .sb-t{font-size:13px;font-weight:500;margin-bottom:2px}
+.sb-info .sb-s{font-size:11px;color:var(--muted)}
+.sb-action{margin-left:auto}
+
+/* FORM */
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.f-label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:5px}
+.f-input,.f-select,.f-textarea{width:100%;background:var(--bg);border:1.5px solid var(--border2);border-radius:8px;padding:10px 12px;font-family:'Geist Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:var(--tr);-webkit-appearance:none;appearance:none}
+.f-input:focus,.f-select:focus,.f-textarea:focus{border-color:var(--text);box-shadow:0 0 0 3px rgba(24,23,20,.07)}
+.f-input::placeholder{color:#b8b5ae}
+.f-textarea{resize:vertical;min-height:90px;line-height:1.6}
+.f-hint{font-size:10px;color:var(--muted);margin-top:5px}
+.f-row{display:flex;gap:8px}
+.f-row .f-input{flex:1}
+.pass-wrap{position:relative}
+.pass-wrap .f-input{padding-right:40px}
+.pass-eye{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;line-height:1;padding:2px}
+.pass-eye:hover{color:var(--text)}
+.range-wrap{display:flex;align-items:center;gap:10px}
+.f-range{flex:1;-webkit-appearance:none;height:4px;background:var(--border2);border-radius:2px;outline:none;cursor:pointer}
+.f-range::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--text);border-radius:50%;cursor:pointer}
+.range-lbl{font-size:10px;color:var(--muted)}
+
+/* BUTTONS */
+.btn{padding:8px 15px;border-radius:8px;border:none;font-family:'Geist Mono',monospace;font-size:12px;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:6px;font-weight:500;line-height:1}
+.btn:hover{opacity:.83;transform:translateY(-1px)}
+.btn:active{transform:none}
+.btn-dark{background:var(--text);color:#fff}
+.btn-outline{background:transparent;border:1.5px solid var(--border2);color:var(--text)}
+.btn-outline:hover{border-color:var(--text)}
+.btn-red{background:var(--red);color:#fff}
+.btn-green{background:var(--accent);color:#fff}
+.btn-sm{padding:5px 11px;font-size:11px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* TOGGLE */
+.tgl-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--border)}
+.tgl-row:last-child{border-bottom:none}
+.tgl-info .tgl-name{font-size:13px}
+.tgl-info .tgl-desc{font-size:11px;color:var(--muted);margin-top:2px}
+.tgl{width:42px;height:24px;background:var(--border2);border-radius:12px;position:relative;cursor:pointer;border:none;transition:background .2s;flex-shrink:0}
+.tgl.on{background:var(--accent)}
+.tgl::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .18s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.tgl.on::after{left:21px}
+
+/* MODELS */
+.model-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:13px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;transition:var(--tr)}
+.model-card:hover{transform:translateY(-1px);box-shadow:0 3px 12px rgba(0,0,0,.08)}
+.model-card.active{border-color:var(--accent);background:var(--accent-l)}
+.model-ico{width:36px;height:36px;border-radius:8px;background:var(--text);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Instrument Serif',serif;font-style:italic;font-size:16px;flex-shrink:0}
+.model-card.active .model-ico{background:var(--accent)}
+.model-info{flex:1;min-width:0}
+.model-name{font-size:13px;font-weight:500;margin-bottom:2px;display:flex;align-items:center;gap:6px}
+.model-id{font-size:10px;color:var(--muted);word-break:break-all}
+.model-key{font-size:10px;margin-top:2px}
+.model-key.custom{color:var(--accent)}
+.model-key.default{color:var(--muted)}
+.active-badge{font-size:9px;background:var(--accent);color:#fff;padding:2px 7px;border-radius:8px;letter-spacing:.4px}
+.model-actions{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.mi-tgl{width:40px;height:22px;background:var(--border2);border-radius:11px;position:relative;cursor:pointer;border:none;transition:background .2s;flex-shrink:0}
+.mi-tgl.on{background:var(--accent)}
+.mi-tgl::after{content:'';position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .18s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.mi-tgl.on::after{left:21px}
+.mi-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px 6px;border-radius:5px;transition:var(--tr);line-height:1}
+.mi-btn:hover{color:var(--text);background:var(--bg)}
+.mi-btn.del:hover{color:var(--red);background:var(--red-l)}
+.model-edit-form{display:flex;flex-direction:column;gap:8px;width:100%}
+.model-edit-form input{background:var(--bg);border:1.5px solid var(--border2);border-radius:7px;padding:7px 10px;font-family:'Geist Mono',monospace;font-size:12px;color:var(--text);outline:none;transition:var(--tr);width:100%}
+.model-edit-form input:focus{border-color:var(--text)}
+
+/* PING */
+.ping-row{display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap}
+.ping-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ping-dot.ok{background:var(--accent)}
+.ping-dot.slow{background:var(--orange)}
+.ping-dot.err{background:var(--red)}
+.ping-dot.wait{background:var(--border2);animation:blink .8s infinite}
+.ping-ms{font-size:10px;font-weight:500}
+.ping-ms.ok{color:var(--accent)}.ping-ms.slow{color:var(--orange)}.ping-ms.err{color:var(--red)}.ping-ms.wait{color:var(--muted)}
+.ping-bar{width:50px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.ping-fill{height:100%;border-radius:2px;transition:width .4s}
+.ping-time{font-size:10px;color:var(--muted)}
+.ping-ref{font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Geist Mono',monospace;padding:1px 5px;border-radius:4px;transition:var(--tr)}
+.ping-ref:hover{background:var(--bg);color:var(--text)}
+
+/* LIMITS */
+.lim-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)}
+.lim-row:last-child{border-bottom:none}
+.lim-info{flex:1}
+.lim-name{font-size:13px}
+.lim-desc{font-size:11px;color:var(--muted);margin-top:1px}
+.lim-num{width:76px;background:var(--bg);border:1.5px solid var(--border2);border-radius:7px;padding:7px 10px;font-family:'Geist Mono',monospace;font-size:13px;color:var(--text);outline:none;text-align:center;transition:var(--tr)}
+.lim-num:focus{border-color:var(--text)}
+.lim-unit{font-size:11px;color:var(--muted);white-space:nowrap;min-width:36px}
+
+/* TAGS */
+.tags-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:24px}
+.tag-item{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px}
+.tag-item.word{background:var(--red-l);border:1px solid #f0c4c0;color:var(--red)}
+.tag-item.ip{background:var(--blue-l);border:1px solid #bcd4f0;color:var(--blue);font-family:monospace}
+.tag-item button{background:none;border:none;cursor:pointer;color:inherit;font-size:14px;line-height:1;padding:0;opacity:.7;transition:opacity .15s}
+.tag-item button:hover{opacity:1}
+.empty-tags{font-size:11px;color:var(--muted)}
+
+/* SUGGESTIONS */
+.sugg-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.sugg-row{display:flex;gap:8px;align-items:center}
+.sugg-inp{flex:1;background:var(--bg);border:1.5px solid var(--border2);border-radius:7px;padding:7px 11px;font-family:'Geist Mono',monospace;font-size:12px;color:var(--text);outline:none;transition:var(--tr)}
+.sugg-inp:focus{border-color:var(--text)}
+.sugg-rm{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:3px;border-radius:5px;transition:var(--tr);line-height:1}
+.sugg-rm:hover{color:var(--red);background:var(--red-l)}
+
+/* PRESET BTNS */
+.presets{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:9px 14px;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--border);background:var(--bg);font-weight:500;white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafaf5}
+.td-cut{max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500}
+.tag-green{background:var(--accent-l);color:var(--accent)}
+.log-detail{display:none}
+.log-detail.open{display:table-row}
+.log-detail td{padding:10px 14px;font-size:11px;color:var(--muted);line-height:1.7;border-bottom:1px solid var(--border);background:var(--bg)}
+.ld-q{color:var(--text);margin-bottom:4px;font-size:12px}
+
+/* CHART */
+.chart-box{position:relative;height:180px;width:100%}
+
+/* LOGO */
+.logo-preview{width:52px;height:52px;border-radius:10px;background:var(--bg);border:2px solid var(--border2);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.logo-preview img{width:100%;height:100%;object-fit:cover}
+.logo-row{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+
+/* ALERT */
+.alert{padding:11px 14px;border-radius:8px;font-size:12px;display:flex;gap:8px;margin-bottom:14px;line-height:1.6;align-items:flex-start}
+.alert-warn{background:var(--orange-l);border:1px solid #fde68a;color:#92400e}
+.alert-info{background:var(--blue-l);border:1px solid #bcd4f0;color:var(--blue)}
+
+/* MY IP BLOCK */
+.my-ip-box{margin-top:12px;padding:11px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.my-ip-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:3px}
+.my-ip-val{font-size:14px;font-weight:600;font-family:monospace}
+
+/* USERS */
+.usr-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.status-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:500}
+.status-badge.active{background:var(--accent-l);color:var(--accent)}
+.status-badge.banned{background:var(--red-l);color:var(--red)}
+.status-badge.throttled{background:var(--orange-l);color:var(--orange)}
+.status-badge.verified{background:var(--blue-l);color:var(--blue)}
+.throttle-inp{width:60px;background:var(--bg);border:1.5px solid var(--border2);border-radius:6px;padding:5px 8px;font-family:'Geist Mono',monospace;font-size:12px;color:var(--text);text-align:center;outline:none;transition:var(--tr)}
+.throttle-inp:focus{border-color:var(--text)}
+.online-card{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.online-card:last-child{border-bottom:none}
+.online-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 2s infinite;flex-shrink:0}
+.online-info{flex:1}
+.online-name{font-size:13px;font-weight:500}
+.online-ip{font-size:10px;color:var(--muted);font-family:monospace}
+.online-ago{font-size:10px;color:var(--muted)}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:9px 16px;border-radius:8px;font-size:12px;opacity:0;transform:translateY(8px);transition:all .22s;pointer-events:none;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+#toast.show{opacity:1;transform:translateY(0)}
+
+/* USER DETAIL CARD */
+.user-detail-grid{display:grid;grid-template-columns:1fr 2fr;gap:16px}
+.user-detail-avatar{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;margin-bottom:10px}
+.user-detail-stats{display:flex;flex-direction:column;gap:10px}
+.stat-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border)}
+.stat-label-sm{font-size:10px;color:var(--muted)}
+.stat-value-sm{font-size:12px;font-weight:500}
+.user-actions-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:15px}
+.filter-tabs{display:flex;gap:4px;background:var(--bg);border-radius:8px;padding:3px;margin-bottom:14px}
+.filter-tab{flex:1;padding:6px;border:none;border-radius:6px;background:transparent;font-family:'Geist Mono',monospace;font-size:11px;cursor:pointer;color:var(--muted);transition:var(--tr)}
+.filter-tab.active{background:var(--surface);color:var(--text);box-shadow:var(--sh)}
+.search-box{display:flex;gap:6px;margin-bottom:14px}
+.search-box input{flex:1;background:var(--bg);border:1.5px solid var(--border2);border-radius:8px;padding:8px 12px;font-family:'Geist Mono',monospace;font-size:12px;color:var(--text)}
+.pm-switch{position:relative;display:inline-block;width:36px;height:20px;margin-left:8px}
+.pm-switch input{opacity:0;width:0;height:0}
+.pm-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--border2);transition:.2s;border-radius:20px}
+.pm-slider:before{position:absolute;content:"";height:16px;width:16px;left:2px;bottom:2px;background:white;transition:.2s;border-radius:50%}
+input:checked + .pm-slider{background:var(--accent)}
+input:checked + .pm-slider:before{transform:translateX(16px)}
+.pm-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;font-size:12px;color:var(--text);transition:background .15s;border:none;background:none;width:100%;font-family:var(--font);text-align:left}
+.pm-item span{flex:1}
+.pm-item:hover{background:var(--bg)}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div id="lock">
+  <div class="lock-box">
+    <div class="lock-icon">🔐</div>
+    <div class="lock-title">Панель администратора</div>
+    <div class="lock-sub">Введите пароль для доступа</div>
+    <input class="lock-inp" type="password" id="lock-input" placeholder="••••••" onkeydown="if(event.key==='Enter')checkLock()"/>
+    <button class="lock-btn" onclick="checkLock()">Войти</button>
+    <div class="lock-err" id="lock-err"></div>
+  </div>
+</div>
+
+<div class="layout">
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-mark" id="sb-mark">A</div>
+    <div class="sb-sitename" id="sb-sitename">Aura</div>
+    <span class="sb-badge">Admin</span>
+  </div>
+  <div class="sb-nav">
+    <div class="nav-label">Управление</div>
+    <button class="nav-btn active" onclick="nav('overview',this)"><span class="nav-icon">◈</span>Обзор</button>
+    <button class="nav-btn" onclick="nav('status',this)"><span class="nav-icon">⏻</span>Статус сайта</button>
+    <button class="nav-btn" onclick="nav('models',this)"><span class="nav-icon">🧠</span>Модели ИИ</button>
+    <button class="nav-btn" onclick="nav('users',this)"><span class="nav-icon">👥</span>Пользователи</button>
+    <button class="nav-btn" onclick="nav('limits',this)"><span class="nav-icon">⚡</span>Ограничения</button>
+    <div class="nav-label">Контент</div>
+    <button class="nav-btn" onclick="nav('system',this)"><span class="nav-icon">💬</span>Системный промпт</button>
+    <button class="nav-btn" onclick="nav('suggestions',this)"><span class="nav-icon">✦</span>Подсказки</button>
+    <button class="nav-btn" onclick="nav('filters',this)"><span class="nav-icon">🛡</span>Фильтры и IP</button>
+    <div class="nav-label">Аналитика</div>
+    <button class="nav-btn" onclick="nav('analytics',this)"><span class="nav-icon">📊</span>Графики</button>
+    <button class="nav-btn" onclick="nav('logs',this)"><span class="nav-icon">📋</span>Логи</button>
+    <div class="nav-label">Настройки</div>
+    <button class="nav-btn" onclick="nav('branding',this)"><span class="nav-icon">🎨</span>Внешний вид</button>
+    <button class="nav-btn" onclick="nav('security',this)"><span class="nav-icon">🔐</span>Пароли</button>
+    <button class="nav-btn" onclick="nav('backup',this)"><span class="nav-icon">💾</span>Бэкап</button>
+    <button class="nav-btn" onclick="nav('danger',this)"><span class="nav-icon">⚠</span>Опасная зона</button>
+  </div>
+  <div class="sb-bottom">
+    <a class="back-link" href="chat.html">← Открыть чат</a>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="tb-title" id="tb-title">Обзор</div>
+    <div class="tb-right">
+      <div class="online-badge"><div class="odot"></div><span id="online-cnt">0</span>&nbsp;онлайн</div>
+      <div class="status-pill on" id="status-pill"><div class="sdot"></div><span id="pill-txt">Работает</span></div>
+      <button class="save-all" onclick="saveAll()">✓ Сохранить</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="section active" id="sec-overview">
+      <div class="sec-title">Панель управления</div>
+      <div class="sec-sub" id="last-saved-lbl">Добро пожаловать</div>
+      <div class="stats-grid">
+        <div class="stat green"><div class="stat-label">Токенов</div><div class="stat-val" id="ov-tok">0</div><div class="stat-hint">использовано</div></div>
+        <div class="stat"><div class="stat-label">Запросов</div><div class="stat-val" id="ov-req">0</div><div class="stat-hint">в логе</div></div>
+        <div class="stat blue"><div class="stat-label">Онлайн</div><div class="stat-val" id="ov-online">0</div><div class="stat-hint">пользователей</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-head"><span class="card-icon">⏻</span><span class="card-title">Управление сайтом</span></div>
+          <div class="card-body">
+            <div class="site-banner on" id="ov-banner">
+              <div class="sb-ico">🌐</div>
+              <div class="sb-info"><div class="sb-t" id="ov-bt">Сайт активен</div><div class="sb-s" id="ov-bs">Пользователи могут писать</div></div>
+              <div class="sb-action"><button class="btn btn-red btn-sm" id="ov-site-btn" onclick="toggleSite()">⏹ Стоп</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-head"><span class="card-icon">📈</span><span class="card-title">Активность сегодня</span></div>
+          <div class="card-body"><div class="chart-box"><canvas id="ch-today"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATUS -->
+    <div class="section" id="sec-status">
+      <div class="sec-title">Статус сайта</div>
+      <div class="sec-sub">Запуск и остановка чата</div>
+      <div class="site-banner on" id="st-banner">
+        <div class="sb-ico" id="st-ico">🟢</div>
+        <div class="sb-info"><div class="sb-t" id="st-title">Сайт работает</div><div class="sb-s" id="st-sub">Чат доступен</div></div>
+        <div class="sb-action"><button class="btn btn-red btn-sm" id="st-btn" onclick="toggleSite()">⏹ Остановить</button></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-icon">⚙</span><span class="card-title">Страница при остановке</span></div>
+        <div class="card-body">
+          <div class="field"><label class="f-label">Заголовок</label><input class="f-input" id="stop-title" value="Технические работы"/></div>
+          <div class="field"><label class="f-label">Сообщение</label><textarea class="f-textarea" id="stop-desc">Сайт временно недоступен.</textarea></div>
+          <div class="field"><label class="f-label">Время возобновления</label><input class="f-input" id="stop-eta" placeholder="например: сегодня в 18:00"/></div>
+          <div class="btn-row">
+            <button class="btn btn-red" onclick="stopSite()">⏹ Остановить</button>
+            <button class="btn btn-green" onclick="startSite()">▶ Запустить</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="tgl-row"><div class="tgl-info"><div class="tgl-name">Баннер тех. обслуживания</div><div class="tgl-desc">Жёлтое предупреждение над чатом</div></div><button class="tgl" id="tgl-maint" onclick="tglClick(this,'maintenance')"></button></div>
+          <div class="tgl-row"><div class="tgl-info"><div class="tgl-name">Скрыть подсказки</div></div><button class="tgl" id="tgl-sugg" onclick="tglClick(this,'hide_suggestions')"></button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODELS -->
+    <div class="section" id="sec-models">
+      <div class="sec-title">Модели ИИ</div>
+      <div class="sec-sub">Включите несколько — чат отправит запрос всем и выберет лучший ответ</div>
+      <div id="models-list"></div>
+      <div class="card">
+        <div class="card-head"><span class="card-icon">＋</span><span class="card-title">Добавить модель</span></div>
+        <div class="card-body">
+          <div class="field"><label class="f-label">Название</label><input class="f-input" id="new-m-name" placeholder="GPT-4o"/></div>
+          <div class="field"><label class="f-label">ID модели на OpenRouter</label><input class="f-input" id="new-m-id" placeholder="openai/gpt-4o"/><div class="f-hint"><a href="https://openrouter.ai/models" target="_blank" style="color:var(--accent)">openrouter.ai/models</a></div></div>
+          <div class="field"><label class="f-label">API ключ (пусто = по умолчанию)</label>
+            <div class="pass-wrap"><input class="f-input" type="password" id="new-m-key" placeholder="sk-or-v1-..."/><button class="pass-eye" onclick="togglePass('new-m-key',this)">👁</button></div>
+          </div>
+          <button class="btn btn-dark" onclick="addModel()">＋ Добавить</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-icon">🔧</span><span class="card-title">Параметры генерации</span></div>
+        <div class="card-body">
+          <div class="field">
+            <label class="f-label">Температура — <span id="temp-val">0.7</span></label>
+            <div class="range-wrap"><span class="range-lbl">Точно</span><input class="f-range" type="range" id="f-temp" min="0" max="2" step="0.1" value="0.7" oninput="document.getElementById('temp-val').textContent=this.value"/><span class="range-lbl">Творчески</span></div>
+          </div>
+          <div class="field"><label class="f-label">Максимум токенов</label><input class="f-input" type="number" id="f-maxtok" min="100" max="8000" step="100" value="1000"/></div>
+          <button class="btn btn-dark" onclick="saveModelParams()">✓ Сохранить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="section" id="sec-users">
+      <div class="sec-title">Пользователи</div>
+      <div class="sec-sub">Регистрация, верификация через Telegram, онлайн, блокировки</div>
+
+      <!-- Telegram Bot Settings -->
+      <div class="card">
+        <div class="card-head"><span class="card-icon">✈️</span><span class="card-title">Telegram-бот для верификации</span><div class="card-right"><span id="tg-status-pill" class="status-pill off" style="font-size:10px;padding:3px 10px"><div class="sdot"></div>Не настроен</span></div></div>
+        <div class="card-body">
+          <div class="field">
+            <label class="f-label">Токен бота (от @BotFather)</label>
+            <div class="pass-wrap">
+              <input class="f-input" type="password" id="f-tg-token" placeholder="1234567890:AAF..."/>
+              <button class="pass-eye" onclick="togglePass('f-tg-token',this)">👁</button>
+            </div>
+            <div class="f-hint">Получить: откройте @BotFather → /newbot или /mybots → API Token</div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-dark" onclick="saveTGSettings()">✓ Сохранить</button>
+            <button class="btn btn-outline" onclick="testTGBot()">🔌 Проверить</button>
+            <button class="btn btn-outline" onclick="removeTGToken()">✕ Убрать</button>
+          </div>
+          <div id="tg-test-result" style="margin-top:10px;font-size:12px;display:none"></div>
+          <div style="margin-top:16px">
+            <div class="tgl-row" style="padding-top:0"><div class="tgl-info"><div class="tgl-name">Требовать верификацию при регистрации</div><div class="tgl-desc">Новые пользователи обязаны подтвердить Telegram</div></div><button class="tgl" id="tgl-tg-req" onclick="tglClick(this,'tg_required')"></button></div>
+            <div class="tgl-row"><div class="tgl-info"><div class="tgl-name">Требовать регистрацию для входа в чат</div><div class="tgl-desc">Без аккаунта доступ закрыт</div></div><button class="tgl" id="tgl-auth" onclick="tglClick(this,'auth_mode')"></button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Online now -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-icon">🟢</span>
+          <span class="card-title">Онлайн сейчас</span>
+          <div class="card-right">
+            <span id="online-count-badge" style="font-size:11px;color:var(--accent);background:var(--accent-l);padding:3px 9px;border-radius:10px;border:1px solid #c8dbc5">0 онлайн</span>
+            <button class="btn btn-outline btn-sm" onclick="loadOnline()">↺</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:10px 18px">
+          <div id="online-list"><div style="color:var(--muted);font-size:12px;padding:8px 0">Никого нет онлайн</div></div>
+        </div>
+      </div>
+
+      <!-- USER STATS DASHBOARD -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-icon">📊</span>
+          <span class="card-title">Статистика пользователей</span>
+          <div class="card-right">
+            <span class="online-badge" style="font-size:10px;" id="stats-updated">Обновлено сейчас</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="stats-grid" style="grid-template-columns: repeat(5,1fr); gap:8px;">
+            <div class="stat">
+              <div class="stat-label">Всего</div>
+              <div class="stat-val" id="stat-total">0</div>
+              <div class="stat-hint">пользователей</div>
+            </div>
+            <div class="stat green">
+              <div class="stat-label">Активны</div>
+              <div class="stat-val" id="stat-active">0</div>
+              <div class="stat-hint">последний час</div>
+            </div>
+            <div class="stat blue">
+              <div class="stat-label">TG верификация</div>
+              <div class="stat-val" id="stat-tg">0</div>
+              <div class="stat-hint">подтверждено</div>
+            </div>
+            <div class="stat orange">
+              <div class="stat-label">С ограничениями</div>
+              <div class="stat-val" id="stat-throttled">0</div>
+              <div class="stat-hint">замедлены</div>
+            </div>
+            <div class="stat red">
+              <div class="stat-label">Заблокировано</div>
+              <div class="stat-val" id="stat-banned">0</div>
+              <div class="stat-hint">в бане</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- USER FILTERS & SEARCH -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-icon">🔍</span>
+          <span class="card-title">Фильтр пользователей</span>
+        </div>
+        <div class="card-body">
+          <div class="filter-tabs" id="user-filter-tabs">
+            <button class="filter-tab active" onclick="filterUsers('all')">Все</button>
+            <button class="filter-tab" onclick="filterUsers('active')">Активные</button>
+            <button class="filter-tab" onclick="filterUsers('banned')">Заблокированные</button>
+            <button class="filter-tab" onclick="filterUsers('verified')">TG верифицированные</button>
+            <button class="filter-tab" onclick="filterUsers('throttled')">С задержкой</button>
+          </div>
+          <div class="search-box">
+            <input type="text" id="user-search" placeholder="Поиск по имени или Telegram..." oninput="searchUsers(this.value)">
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('user-search').value='';searchUsers('')">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- USER DETAIL CARD (hidden by default) -->
+      <div class="card" id="user-detail-card" style="display:none;">
+        <div class="card-head">
+          <span class="card-icon">👤</span>
+          <span class="card-title" id="detail-username">Пользователь</span>
+          <div class="card-right">
+            <button class="btn btn-outline btn-sm" onclick="closeUserDetail()">✕ Закрыть</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="user-detail-grid">
+            <div>
+              <div class="user-detail-avatar" id="detail-avatar" style="background:#666;">U</div>
+              <div class="stat-row">
+                <span class="stat-label-sm">ID:</span>
+                <span class="stat-value-sm" id="detail-id">—</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label-sm">Имя:</span>
+                <span class="stat-value-sm" id="detail-name">—</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label-sm">Telegram:</span>
+                <span class="stat-value-sm" id="detail-tg">—</span>
+              </div>
+            </div>
+            <div>
+              <div class="stat-row">
+                <span class="stat-label-sm">Дата регистрации:</span>
+                <span class="stat-value-sm" id="detail-created">—</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label-sm">Последняя активность:</span>
+                <span class="stat-value-sm" id="detail-lastactive">—</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label-sm">Всего сообщений:</span>
+                <span class="stat-value-sm" id="detail-msgcount">0</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label-sm">Потрачено токенов:</span>
+                <span class="stat-value-sm" id="detail-tokens">0</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label-sm">Текущая задержка:</span>
+                <span class="stat-value-sm" id="detail-throttle">0 сек</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label-sm">Статус:</span>
+                <span class="stat-value-sm" id="detail-status">—</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="user-actions-grid">
+            <button class="btn btn-green btn-sm" id="detail-unban-btn" onclick="unbanUser(currentDetailId)" style="display:none;">✓ Разблокировать</button>
+            <button class="btn btn-red btn-sm" id="detail-ban-btn" onclick="banUser(currentDetailId)">🚫 Заблокировать</button>
+            <button class="btn btn-outline btn-sm" onclick="showUserChats(currentDetailId)">💬 История чатов</button>
+            <button class="btn btn-outline btn-sm" onclick="resetUserTokens(currentDetailId)">⟲ Сброс токенов</button>
+            <button class="btn btn-outline btn-sm" onclick="sendUserMessage(currentDetailId)">✈️ Отправить сообщение</button>
+            <button class="btn btn-red btn-sm" onclick="deleteUser(currentDetailId)">✕ Удалить</button>
+          </div>
+          
+          <div style="margin-top:15px;">
+            <label class="f-label">Индивидуальная задержка (сек)</label>
+            <div class="f-row">
+              <input type="number" class="f-input" id="detail-throttle-input" min="0" max="3600" value="0">
+              <button class="btn btn-dark btn-sm" onclick="setUserThrottle(currentDetailId, document.getElementById('detail-throttle-input').value)">Применить</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- All users table -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-icon">👥</span>
+          <span class="card-title">Все пользователи</span>
+          <div class="card-right">
+            <span id="users-count" style="font-size:11px;color:var(--muted)">0 пользователей</span>
+            <button class="btn btn-outline btn-sm" onclick="loadUsers()">↺</button>
+            <button class="btn btn-outline btn-sm" onclick="exportUsers()">↓ CSV</button>
+            <button class="btn btn-outline btn-sm" onclick="exportAllUserData()">📦 Экспорт всех данных</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Пользователь</th>
+                <th>Telegram</th>
+                <th>Верифицирован</th>
+                <th>Регистрация</th>
+                <th>Активность</th>
+                <th>Сообщений</th>
+                <th>Токенов</th>
+                <th>Задержка</th>
+                <th>Статус</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody id="users-body">
+              <tr><td colspan="11" style="text-align:center;color:var(--muted);padding:28px">Нет пользователей</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- BULK ACTIONS -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-icon">⚡</span>
+          <span class="card-title">Массовые действия</span>
+        </div>
+        <div class="card-body">
+          <div class="btn-row">
+            <button class="btn btn-outline btn-sm" onclick="bulkBanUsers()">🚫 Заблокировать выбранных</button>
+            <button class="btn btn-outline btn-sm" onclick="bulkUnbanUsers()">✓ Разблокировать выбранных</button>
+            <button class="btn btn-outline btn-sm" onclick="bulkSetThrottle()">⏱ Установить задержку</button>
+            <button class="btn btn-outline btn-sm" onclick="bulkExportUsers()">📥 Экспорт выбранных</button>
+          </div>
+          <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
+            <input type="checkbox" id="select-all-users" onchange="toggleSelectAllUsers()">
+            <label for="select-all-users" style="font-size:11px;">Выбрать всех</label>
+            <span style="font-size:10px; color:var(--muted); margin-left:auto;" id="selected-count">0 выбрано</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- USER SESSION MANAGEMENT -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-icon">🔌</span>
+          <span class="card-title">Активные сессии</span>
+          <div class="card-right">
+            <button class="btn btn-outline btn-sm" onclick="loadActiveSessions()">↺</button>
+            <button class="btn btn-red btn-sm" onclick="terminateAllSessions()">✕ Завершить все</button>
+          </div>
+        </div>
+        <div class="card-body" id="sessions-list">
+          <div style="color:var(--muted); font-size:11px; padding:8px 0;">Загрузка сессий...</div>
+        </div>
+      </div>
+
+      <!-- Notify all -->
+      <div class="card">
+        <div class="card-head"><span class="card-icon">📢</span><span class="card-title">Рассылка в Telegram</span></div>
+        <div class="card-body">
+          <div class="field">
+            <label class="f-label">Сообщение</label>
+            <textarea class="f-textarea" id="broadcast-msg" placeholder="Введите сообщение для всех верифицированных пользователей..." style="min-height:70px"></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-dark" onclick="broadcastMsg()">📢 Разослать всем</button>
+            <button class="btn btn-outline" onclick="broadcastToFiltered()">📢 Только отфильтрованным</button>
+          </div>
+          <div id="broadcast-status" style="margin-top:8px;font-size:11px;color:var(--muted)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIMITS -->
+    <div class="section" id="sec-limits">
+      <div class="sec-title">Ограничения</div>
+      <div class="sec-sub">0 = без ограничений</div>
+      <div class="card"><div class="card-body">
+        <div class="lim-row"><div class="lim-info"><div class="lim-name">Макс. символов в запросе</div></div><input class="lim-num" type="number" id="lim-chars" value="0" min="0"/><span class="lim-unit">симв.</span></div>
+        <div class="lim-row"><div class="lim-info"><div class="lim-name">Задержка между запросами</div><div class="lim-desc">Защита от спама</div></div><input class="lim-num" type="number" id="lim-cool" value="3" min="0"/><span class="lim-unit">сек.</span></div>
+        <div class="lim-row"><div class="lim-info"><div class="lim-name">Макс. сообщений в диалоге</div></div><input class="lim-num" type="number" id="lim-msgs" value="50" min="1"/><span class="lim-unit">сообщ.</span></div>
+      </div></div>
+    </div>
+
+    <!-- SYSTEM PROMPT -->
+    <div class="section" id="sec-system">
+      <div class="sec-title">Системный промпт</div>
+      <div class="sec-sub">Скрытая инструкция для модели</div>
+      <div class="presets">
+        <button class="btn btn-outline btn-sm" onclick="preset('helpful')">🙂 Полезный</button>
+        <button class="btn btn-outline btn-sm" onclick="preset('strict')">🎯 Строгий</button>
+        <button class="btn btn-outline btn-sm" onclick="preset('creative')">🎨 Творческий</button>
+        <button class="btn btn-outline btn-sm" onclick="preset('coder')">💻 Программист</button>
+        <button class="btn btn-outline btn-sm" onclick="preset('support')">🤝 Поддержка</button>
+      </div>
+      <div class="card"><div class="card-body">
+        <div class="field"><textarea class="f-textarea" id="f-sysprompt" style="min-height:160px" placeholder="Ты полезный ИИ-ассистент..."></textarea></div>
+        <div class="btn-row">
+          <button class="btn btn-dark" onclick="saveSystem()">✓ Сохранить</button>
+          <button class="btn btn-outline" onclick="clearSystem()">✕ Очистить</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- SUGGESTIONS -->
+    <div class="section" id="sec-suggestions">
+      <div class="sec-title">Подсказки</div>
+      <div class="sec-sub">Кнопки-примеры на стартовом экране чата</div>
+      <div class="card">
+        <div class="card-head"><span class="card-icon">✦</span><span class="card-title">Список подсказок</span><div class="card-right"><button class="btn btn-outline btn-sm" onclick="addSugg()">＋ Добавить</button></div></div>
+        <div class="card-body">
+          <div class="sugg-list" id="sugg-list"></div>
+          <div class="btn-row">
+            <button class="btn btn-dark" onclick="saveSuggs()">✓ Сохранить</button>
+            <button class="btn btn-outline" onclick="resetSuggs()">↺ Сбросить</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="section" id="sec-filters">
+      <div class="sec-title">Фильтры и IP</div>
+      <div class="sec-sub">Заблокированные слова и IP-адреса</div>
+      <!-- IP BLOCKING -->
+      <div class="card">
+        <div class="card-head"><span class="card-icon">🚫</span><span class="card-title">Блокировка по IP</span><div class="card-right"><span id="ip-cnt-lbl" style="font-size:11px;color:var(--muted)">0 IP</span></div></div>
+        <div class="card-body">
+          <div class="alert alert-info">ℹ При каждом открытии чата IP определяется через ipify.org и сверяется со списком.</div>
+          <div class="field">
+            <label class="f-label">Добавить IP</label>
+            <div class="f-row">
+              <input class="f-input" id="new-ip" placeholder="192.168.1.1" style="font-family:monospace" onkeydown="if(event.key==='Enter')addIP()"/>
+              <button class="btn btn-dark" onclick="addIP()">Блок</button>
+            </div>
+          </div>
+          <div class="tags-wrap" id="ip-tags"><span class="empty-tags">Список пуст — все разрешены</span></div>
+          <div class="field" style="margin-top:14px"><label class="f-label">Сообщение при блокировке</label><input class="f-input" id="ip-msg" value="Доступ с вашего IP заблокирован."/></div>
+          <div class="my-ip-box">
+            <div><div class="my-ip-lbl">Ваш IP</div><div class="my-ip-val" id="my-ip-val">Определяю...</div></div>
+            <button class="btn btn-red btn-sm" id="block-my-btn" style="display:none" onclick="blockMyIP()">🚫 Заблокировать</button>
+          </div>
+        </div>
+      </div>
+      <!-- WORD FILTER -->
+      <div class="card">
+        <div class="card-head"><span class="card-icon">🔤</span><span class="card-title">Фильтр слов</span></div>
+        <div class="card-body">
+          <div class="field">
+            <label class="f-label">Добавить слово</label>
+            <div class="f-row">
+              <input class="f-input" id="new-word" placeholder="слово или фраза" onkeydown="if(event.key==='Enter')addWord()"/>
+              <button class="btn btn-dark" onclick="addWord()">Добавить</button>
+            </div>
+          </div>
+          <div class="tags-wrap" id="word-tags"><span class="empty-tags">Список пуст</span></div>
+          <div class="field" style="margin-top:14px"><label class="f-label">Ответ при блокировке</label><input class="f-input" id="block-msg" value="Извините, этот запрос не может быть обработан."/></div>
+          <div class="tgl-row" style="padding-top:12px"><div class="tgl-info"><div class="tgl-name">Учитывать регистр</div></div><button class="tgl" id="tgl-case" onclick="tglClick(this,'block_case')"></button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="section" id="sec-analytics">
+      <div class="sec-title">Графики</div>
+      <div class="sec-sub">Статистика за 7 дней</div>
+      <div class="grid2">
+        <div class="card" style="margin-bottom:0"><div class="card-head"><span class="card-icon">📈</span><span class="card-title">Запросов по дням</span></div><div class="card-body"><div class="chart-box"><canvas id="ch-days"></canvas></div></div></div>
+        <div class="card" style="margin-bottom:0"><div class="card-head"><span class="card-icon">⚡</span><span class="card-title">Токены по дням</span></div><div class="card-body"><div class="chart-box"><canvas id="ch-tokens"></canvas></div></div></div>
+      </div>
+      <div class="card" style="margin-top:16px"><div class="card-head"><span class="card-icon">🧠</span><span class="card-title">Популярность моделей</span></div><div class="card-body"><div class="chart-box" style="height:200px"><canvas id="ch-models"></canvas></div></div></div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="section" id="sec-logs">
+      <div class="sec-title">Логи диалогов</div>
+      <div class="sec-sub">Нажмите на строку для деталей</div>
+      <div class="card">
+        <div class="card-head"><span class="card-icon">📋</span><span class="card-title">Запросы</span>
+          <div class="card-right">
+            <button class="btn btn-outline btn-sm" onclick="loadLogs()">↺</button>
+            <button class="btn btn-outline btn-sm" onclick="exportLogs()">↓ JSON</button>
+            <button class="btn btn-red btn-sm" onclick="clearLogs()">✕ Удалить</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Время</th><th>Модель</th><th>~Токены</th><th>Вопрос</th></tr></thead>
+            <tbody id="logs-body"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:28px">Логов нет</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- BRANDING -->
+    <div class="section" id="sec-branding">
+      <div class="sec-title">Внешний вид</div>
+      <div class="sec-sub">Логотип, название, шрифт</div>
+      <div class="card">
+        <div class="card-head"><span class="card-icon">🏷</span><span class="card-title">Логотип и название</span></div>
+        <div class="card-body">
+          <div class="logo-row">
+            <div class="logo-preview" id="logo-preview">A</div>
+            <div style="flex:1">
+              <div class="field" style="margin-bottom:10px"><label class="f-label">Название сайта</label><input class="f-input" id="f-sitename" value="Aura" oninput="previewBrand()"/></div>
+              <div class="btn-row">
+                <input type="file" id="logo-file" accept="image/*" style="display:none" onchange="uploadLogo(this)"/>
+                <button class="btn btn-outline btn-sm" onclick="document.getElementById('logo-file').click()">🖼 Загрузить</button>
+                <button class="btn btn-outline btn-sm" onclick="removeLogo()">✕ Убрать</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-icon">🔤</span><span class="card-title">Шрифт</span></div>
+        <div class="card-body">
+          <div class="field"><label class="f-label">Шрифт</label><select class="f-select" id="f-font"><option value="Geist Mono">Geist Mono (дефолт)</option><option value="Inter">Inter</option><option value="Georgia">Georgia</option><option value="monospace">Системный моно</option></select></div>
+          <div class="field"><label class="f-label">Размер — <span id="fsize-val">13.5</span>px</label><div class="range-wrap"><span class="range-lbl">Мелкий</span><input class="f-range" type="range" id="f-fsize" min="11" max="18" step=".5" value="13.5" oninput="document.getElementById('fsize-val').textContent=this.value"/><span class="range-lbl">Крупный</span></div></div>
+          <button class="btn btn-dark" onclick="saveBranding()">✓ Применить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECURITY -->
+    <div class="section" id="sec-security">
+      <div class="sec-title">Пароли</div>
+      <div class="sec-sub">Защита панели и чата</div>
+      <div class="card">
+        <div class="card-head"><span class="card-icon">🔐</span><span class="card-title">Пароль на панель администратора</span></div>
+        <div class="card-body">
+          <div class="field"><label class="f-label">Текущий пароль</label><div class="pass-wrap"><input class="f-input" type="password" id="adm-cur"/><button class="pass-eye" onclick="togglePass('adm-cur',this)">👁</button></div></div>
+          <div class="field"><label class="f-label">Новый пароль (мин. 4 символа)</label><div class="pass-wrap"><input class="f-input" type="password" id="adm-new"/><button class="pass-eye" onclick="togglePass('adm-new',this)">👁</button></div></div>
+          <div style="font-size:11px;color:var(--accent);margin-bottom:12px" id="adm-pass-status"></div>
+          <div class="btn-row"><button class="btn btn-dark" onclick="setAdmPass()">✓ Установить</button><button class="btn btn-outline" onclick="removeAdmPass()">✕ Убрать</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-icon">🔒</span><span class="card-title">Пароль на чат</span></div>
+        <div class="card-body">
+          <div class="field"><label class="f-label">Пароль для пользователей</label><div class="pass-wrap"><input class="f-input" type="password" id="chat-new"/><button class="pass-eye" onclick="togglePass('chat-new',this)">👁</button></div></div>
+          <div style="font-size:11px;color:var(--accent);margin-bottom:12px" id="chat-pass-status"></div>
+          <div class="btn-row"><button class="btn btn-dark" onclick="setChatPass()">✓ Установить</button><button class="btn btn-outline" onclick="removeChatPass()">✕ Убрать</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BACKUP -->
+    <div class="section" id="sec-backup">
+      <div class="sec-title">Бэкап</div>
+      <div class="sec-sub">Экспорт и импорт настроек</div>
+      <div class="card"><div class="card-body"><p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.7">Сохраняет модели, промпты, фильтры, лимиты, брендинг, пароли.</p><button class="btn btn-dark" onclick="exportSettings()">↓ Скачать настройки</button></div></div>
+      <div class="card"><div class="card-body"><div class="alert alert-warn">⚠ Импорт перезапишет текущие настройки</div><input type="file" id="import-file" accept=".json" style="display:none" onchange="importSettings(this)"/><button class="btn btn-dark" onclick="document.getElementById('import-file').click()">↑ Загрузить файл</button></div></div>
+    </div>
+
+    <!-- DANGER -->
+    <div class="section" id="sec-danger">
+      <div class="sec-title">Опасная зона</div>
+      <div class="sec-sub">Необратимые действия</div>
+      <div class="alert alert-warn">⚠ Действия нельзя отменить</div>
+      <div class="card"><div class="card-body">
+        <div class="lim-row"><div class="lim-info"><div class="lim-name">Удалить все логи</div></div><button class="btn btn-red btn-sm" onclick="clearLogs()">Удалить</button></div>
+        <div class="lim-row"><div class="lim-info"><div class="lim-name">Сбросить счётчик токенов</div></div><button class="btn btn-outline btn-sm" onclick="resetTokens()">Сбросить</button></div>
+        <div class="lim-row"><div class="lim-info"><div class="lim-name">Очистить системный промпт</div></div><button class="btn btn-outline btn-sm" onclick="clearSystem()">Очистить</button></div>
+        <div class="lim-row" style="border-top:2px solid var(--red);margin-top:8px;padding-top:14px"><div class="lim-info"><div class="lim-name" style="color:var(--red);font-weight:500">Полный сброс</div><div class="lim-desc">Удалит всё кроме паролей</div></div><button class="btn btn-red btn-sm" onclick="resetAll()">⚠ Сбросить</button></div>
+      </div></div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const LS = localStorage, SS = sessionStorage;
+const DEFAULT_KEY = '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';
+const PRESETS = {
+  helpful: 'Ты полезный ИИ-ассистент. Отвечай подробно и дружелюбно на русском языке.',
+  strict: 'Ты эксперт-консультант. Только факты, без воды. Отвечай кратко.',
+  creative: 'Ты творческий писатель. Пиши живо, образно и интересно.',
+  coder: 'Ты опытный программист. Давай рабочие примеры кода с объяснениями.',
+  support: 'Ты агент поддержки. Отвечай вежливо, уточняй детали, предлагай решения.'
+};
+const BACKUP_KEYS = ['or_model','or_sys','models_list','temperature','max_tokens','maintenance','hide_suggestions','custom_suggestions','blocked_words','block_msg','block_case','lim_chars','lim_cooldown','lim_msgs','stop_title','stop_desc','stop_eta','site_name','site_logo','site_font','site_font_size','site_stopped','admin_password','chat_password','blocked_ips','ip_block_msg','tg_bot_token','tg_required','auth_mode','aura_users','total_tokens','chat_logs','user_stats'];
+const DEFAULT_SUGGS = ['Объясни квантовые вычисления','Напиши функцию на Python','Что такое нейронные сети?','Придумай идею для стартапа','Помоги с резюме'];
+
+let siteOn = true, blockedWords = [], blockedIPs = [], modelsList = [];
+let charts = {}, pingTimers = {};
+let currentDetailId = null;
+let selectedUsers = new Set();
+let currentFilter = 'all';
+let userSearchTerm = '';
+
+// ── USERS SYSTEM ──────────────────────────────────
+function getUsers() { 
+  try { 
+    return JSON.parse(LS.getItem('aura_users') || '[]'); 
+  } catch(e) { 
+    return []; 
+  } 
+}
+
+function saveUsersList(u) { 
+  LS.setItem('aura_users', JSON.stringify(u)); 
+  updateUserStats();
+}
+
+function updateUserStats() {
+  const users = getUsers();
+  const now = Date.now();
+  const hourAgo = now - 3600000;
+  
+  // Get online users from localStorage
+  const online = [];
+  for (let i = 0; i < LS.length; i++) {
+    const key = LS.key(i);
+    if (key && key.startsWith('online_')) {
+      try { 
+        const d = JSON.parse(LS.getItem(key)); 
+        if (now - (d.ts || 0) < 90000) online.push(d); 
+      } catch(e) {}
+    }
+  }
+  
+  const activeUsers = online.length;
+  const tgVerified = users.filter(u => u.verified).length;
+  const throttled = users.filter(u => u.throttle > 0).length;
+  const banned = users.filter(u => u.banned).length;
+  
+  document.getElementById('stat-total').textContent = users.length;
+  document.getElementById('stat-active').textContent = activeUsers;
+  document.getElementById('stat-tg').textContent = tgVerified;
+  document.getElementById('stat-throttled').textContent = throttled;
+  document.getElementById('stat-banned').textContent = banned;
+  document.getElementById('stats-updated').textContent = 'Обновлено ' + new Date().toLocaleTimeString('ru', {hour:'2-digit', minute:'2-digit'});
+}
+
+function loadUsers() {
+  const users = getUsers();
+  updateUserStats();
+  
+  const el = document.getElementById('users-count'); 
+  if (el) el.textContent = users.length + ' пользователей';
+  
+  const tb = document.getElementById('users-body'); 
+  if (!tb) return;
+  
+  // Apply filters
+  let filteredUsers = [...users];
+  
+  // Apply status filter
+  if (currentFilter !== 'all') {
+    filteredUsers = filteredUsers.filter(u => {
+      if (currentFilter === 'active') {
+        const now = Date.now();
+        for (let i = 0; i < LS.length; i++) {
+          const key = LS.key(i);
+          if (key && key.startsWith('online_') && key.includes(u.id)) {
+            try {
+              const d = JSON.parse(LS.getItem(key));
+              if (now - (d.ts || 0) < 90000) return true;
+            } catch(e) {}
+          }
+        }
+        return false;
+      }
+      if (currentFilter === 'banned') return u.banned;
+      if (currentFilter === 'verified') return u.verified;
+      if (currentFilter === 'throttled') return u.throttle > 0;
+      return true;
+    });
+  }
+  
+  // Apply search
+  if (userSearchTerm) {
+    const term = userSearchTerm.toLowerCase();
+    filteredUsers = filteredUsers.filter(u => 
+      u.username.toLowerCase().includes(term) || 
+      (u.tg && u.tg.toLowerCase().includes(term))
+    );
+  }
+  
+  if (!filteredUsers.length) { 
+    tb.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:28px">Нет пользователей</td></tr>'; 
+    return; 
+  }
+  
+  tb.innerHTML = filteredUsers.map(u => {
+    const reg = new Date(u.created).toLocaleDateString('ru', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    
+    // Get last activity
+    let lastActive = '—';
+    const now = Date.now();
+    for (let i = 0; i < LS.length; i++) {
+      const key = LS.key(i);
+      if (key && key.startsWith('online_') && key.includes(u.id)) {
+        try {
+          const d = JSON.parse(LS.getItem(key));
+          if (now - (d.ts || 0) < 90000) {
+            const mins = Math.round((now - d.ts) / 60000);
+            lastActive = mins + ' мин назад';
+          } else {
+            const mins = Math.round((now - d.ts) / 60000);
+            lastActive = mins + ' мин назад';
+          }
+        } catch(e) {}
+      }
+    }
+    
+    // Get user stats
+    const userStats = JSON.parse(LS.getItem('user_stats_' + u.id) || '{"msgs":0,"tokens":0}');
+    
+    const status = u.banned
+      ? '<span class="status-badge banned">🚫 Бан</span>'
+      : u.throttle > 0
+        ? '<span class="status-badge throttled">⏱ Замедлен</span>'
+        : '<span class="status-badge active">✓ Активен</span>';
+    
+    const verified = u.verified
+      ? '<span class="status-badge verified">✓ TG</span>'
+      : '<span style="font-size:11px;color:var(--muted)">—</span>';
+    
+    const tgLink = u.tg ? `<a href="https://t.me/${u.tg}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:11px">@${esc(u.tg)}</a>` : '<span style="font-size:11px;color:var(--muted)">—</span>';
+    
+    const selected = selectedUsers.has(u.id) ? 'checked' : '';
+    
+    return `<tr>
+      <td><input type="checkbox" class="user-select" value="${u.id}" onchange="toggleUserSelect('${u.id}')" ${selected}></td>
+      <td><div class="usr-av" style="background:${u.color||'#666'}">${esc((u.username||'?').charAt(0).toUpperCase())}</div></td>
+      <td style="font-weight:500"><a href="#" onclick="showUserDetail('${u.id}');return false;">${esc(u.username)}</a></td>
+      <td>${tgLink}</td>
+      <td>${verified}</td>
+      <td style="font-size:11px;color:var(--muted)">${reg}</td>
+      <td style="font-size:11px;">${lastActive}</td>
+      <td style="font-size:11px;">${userStats.msgs}</td>
+      <td style="font-size:11px;">${userStats.tokens}</td>
+      <td style="white-space:nowrap"><input class="throttle-inp" type="number" min="0" max="3600" value="${u.throttle||0}" onchange="setThrottle('${u.id}',this.value)"/>с</td>
+      <td>${status}</td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:nowrap">
+          <button class="btn btn-outline btn-sm" onclick="showUserDetail('${u.id}')" title="Детали">👁</button>
+          ${u.banned
+            ? `<button class="btn btn-green btn-sm" onclick="unbanUser('${u.id}')" title="Разблокировать">✓</button>`
+            : `<button class="btn btn-red btn-sm" onclick="banUser('${u.id}')" title="Заблокировать">🚫</button>`}
+          ${u.tgChatId ? `<button class="btn btn-outline btn-sm" onclick="sendUserMessage('${u.id}')" title="Написать в Telegram">✈️</button>` : ''}
+          <button class="btn btn-outline btn-sm" onclick="deleteUser('${u.id}')" title="Удалить">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  
+  document.getElementById('selected-count').textContent = selectedUsers.size + ' выбрано';
+}
+
+function filterUsers(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
+  event.target.classList.add('active');
+  loadUsers();
+}
+
+function searchUsers(term) {
+  userSearchTerm = term;
+  loadUsers();
+}
+
+function toggleUserSelect(id) {
+  if (selectedUsers.has(id)) {
+    selectedUsers.delete(id);
+  } else {
+    selectedUsers.add(id);
+  }
+  loadUsers();
+}
+
+function toggleSelectAllUsers() {
+  const checked = document.getElementById('select-all-users').checked;
+  if (checked) {
+    getUsers().forEach(u => selectedUsers.add(u.id));
+  } else {
+    selectedUsers.clear();
+  }
+  loadUsers();
+}
+
+function showUserDetail(id) {
+  currentDetailId = id;
+  const user = getUsers().find(u => u.id === id);
+  if (!user) return;
+  
+  document.getElementById('detail-username').textContent = user.username;
+  document.getElementById('detail-id').textContent = user.id;
+  document.getElementById('detail-name').textContent = user.username;
+  document.getElementById('detail-tg').textContent = user.tg || '—';
+  document.getElementById('detail-created').textContent = new Date(user.created).toLocaleString('ru');
+  
+  const avatar = document.getElementById('detail-avatar');
+  avatar.style.background = user.color || '#666';
+  avatar.textContent = user.username.charAt(0).toUpperCase();
+  
+  // Get last activity
+  let lastActive = '—';
+  const now = Date.now();
+  for (let i = 0; i < LS.length; i++) {
+    const key = LS.key(i);
+    if (key && key.startsWith('online_') && key.includes(user.id)) {
+      try {
+        const d = JSON.parse(LS.getItem(key));
+        const mins = Math.round((now - d.ts) / 60000);
+        lastActive = mins + ' минут назад';
+      } catch(e) {}
+    }
+  }
+  document.getElementById('detail-lastactive').textContent = lastActive;
+  
+  // Get user stats
+  const userStats = JSON.parse(LS.getItem('user_stats_' + user.id) || '{"msgs":0,"tokens":0}');
+  document.getElementById('detail-msgcount').textContent = userStats.msgs;
+  document.getElementById('detail-tokens').textContent = userStats.tokens;
+  document.getElementById('detail-throttle').textContent = (user.throttle || 0) + ' сек';
+  document.getElementById('detail-throttle-input').value = user.throttle || 0;
+  
+  const statusEl = document.getElementById('detail-status');
+  if (user.banned) {
+    statusEl.innerHTML = '<span class="status-badge banned">Заблокирован</span>';
+    document.getElementById('detail-ban-btn').style.display = 'none';
+    document.getElementById('detail-unban-btn').style.display = '';
+  } else {
+    statusEl.innerHTML = '<span class="status-badge active">Активен</span>';
+    document.getElementById('detail-ban-btn').style.display = '';
+    document.getElementById('detail-unban-btn').style.display = 'none';
+  }
+  
+  document.getElementById('user-detail-card').style.display = 'block';
+}
+
+function closeUserDetail() {
+  document.getElementById('user-detail-card').style.display = 'none';
+  currentDetailId = null;
+}
+
+function setUserThrottle(id, val) {
+  const users = getUsers(); 
+  const u = users.find(x => x.id === id);
+  if (u) { 
+    u.throttle = Math.max(0, parseInt(val)||0); 
+    saveUsersList(users); 
+    showToast('Задержка ' + u.throttle + 'с → ' + u.username); 
+    if (currentDetailId === id) showUserDetail(id);
+  }
+}
+
+function banUser(id) {
+  if (!confirm('Заблокировать пользователя?')) return;
+  const users = getUsers(); 
+  const u = users.find(x => x.id === id);
+  if (u) { 
+    u.banned = true; 
+    saveUsersList(users); 
+    showToast('🚫 ' + u.username + ' заблокирован'); 
+    loadUsers();
+    if (currentDetailId === id) showUserDetail(id);
+  }
+}
+
+function unbanUser(id) {
+  const users = getUsers(); 
+  const u = users.find(x => x.id === id);
+  if (u) { 
+    u.banned = false; 
+    saveUsersList(users); 
+    showToast('✓ Разблокирован: ' + u.username); 
+    loadUsers();
+    if (currentDetailId === id) showUserDetail(id);
+  }
+}
+
+function deleteUser(id) {
+  if (!confirm('Удалить аккаунт? Это действие необратимо.')) return;
+  
+  // Delete user data
+  const users = getUsers().filter(x => x.id !== id); 
+  saveUsersList(users); 
+  
+  // Delete user chats
+  LS.removeItem('chats_' + id);
+  
+  // Delete user stats
+  LS.removeItem('user_stats_' + id);
+  
+  // Delete online status
+  for (let i = 0; i < LS.length; i++) {
+    const key = LS.key(i);
+    if (key && key.includes(id)) {
+      LS.removeItem(key);
+    }
+  }
+  
+  showToast('Пользователь удалён'); 
+  loadUsers();
+  closeUserDetail();
+}
+
+function setThrottle(id, val) {
+  const users = getUsers(); 
+  const u = users.find(x => x.id === id);
+  if (u) { 
+    u.throttle = Math.max(0, parseInt(val)||0); 
+    saveUsersList(users); 
+    showToast('Задержка ' + u.throttle + 'с → ' + u.username); 
+  }
+}
+
+function exportUsers() {
+  const users = getUsers();
+  const rows = [['ID','Имя','Telegram','Верифицирован','Создан','Заблокирован','Задержка','Telegram Chat ID']];
+  users.forEach(u => rows.push([u.id, u.username, u.tg||'', u.verified?'да':'нет', new Date(u.created).toLocaleString('ru'), u.banned?'да':'нет', u.throttle||0, u.tgChatId||'']));
+  const csv = rows.map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const b = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'users.csv'; a.click();
+  showToast('✓ Скачано');
+}
+
+function exportAllUserData() {
+  const data = {
+    users: getUsers(),
+    chats: {},
+    stats: {}
+  };
+  
+  getUsers().forEach(u => {
+    const chats = LS.getItem('chats_' + u.id);
+    if (chats) data.chats[u.id] = JSON.parse(chats);
+    
+    const stats = LS.getItem('user_stats_' + u.id);
+    if (stats) data.stats[u.id] = JSON.parse(stats);
+  });
+  
+  const b = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'users-full-export.json'; a.click();
+  showToast('✓ Экспортировано');
+}
+
+function bulkBanUsers() {
+  if (selectedUsers.size === 0) { showToast('Нет выбранных пользователей'); return; }
+  if (!confirm('Заблокировать ' + selectedUsers.size + ' пользователей?')) return;
+  
+  const users = getUsers();
+  users.forEach(u => {
+    if (selectedUsers.has(u.id)) u.banned = true;
+  });
+  saveUsersList(users);
+  showToast('Заблокировано: ' + selectedUsers.size);
+  selectedUsers.clear();
+  loadUsers();
+}
+
+function bulkUnbanUsers() {
+  if (selectedUsers.size === 0) { showToast('Нет выбранных пользователей'); return; }
+  
+  const users = getUsers();
+  users.forEach(u => {
+    if (selectedUsers.has(u.id)) u.banned = false;
+  });
+  saveUsersList(users);
+  showToast('Разблокировано: ' + selectedUsers.size);
+  selectedUsers.clear();
+  loadUsers();
+}
+
+function bulkSetThrottle() {
+  if (selectedUsers.size === 0) { showToast('Нет выбранных пользователей'); return; }
+  
+  const throttle = prompt('Введите задержку в секундах (0-3600):', '3');
+  if (throttle === null) return;
+  
+  const val = parseInt(throttle);
+  if (isNaN(val) || val < 0 || val > 3600) { showToast('Некорректное значение'); return; }
+  
+  const users = getUsers();
+  users.forEach(u => {
+    if (selectedUsers.has(u.id)) u.throttle = val;
+  });
+  saveUsersList(users);
+  showToast('Задержка установлена для ' + selectedUsers.size + ' пользователей');
+  selectedUsers.clear();
+  loadUsers();
+}
+
+function bulkExportUsers() {
+  if (selectedUsers.size === 0) { showToast('Нет выбранных пользователей'); return; }
+  
+  const users = getUsers().filter(u => selectedUsers.has(u.id));
+  const rows = [['ID','Имя','Telegram','Верифицирован','Создан','Заблокирован','Задержка']];
+  users.forEach(u => rows.push([u.id, u.username, u.tg||'', u.verified?'да':'нет', new Date(u.created).toLocaleString('ru'), u.banned?'да':'нет', u.throttle||0]));
+  const csv = rows.map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const b = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'selected-users.csv'; a.click();
+  showToast('✓ Экспортировано');
+}
+
+function showUserChats(id) {
+  const chats = LS.getItem('chats_' + id);
+  if (!chats || JSON.parse(chats).length === 0) {
+    showToast('У пользователя нет сохранённых чатов');
+    return;
+  }
+  
+  // Create modal with chats
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:12px;padding:24px;max-width:600px;width:90%;max-height:80vh;overflow:auto;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+        <h3 style="font-family:Instrument Serif;font-size:20px;">Чаты пользователя</h3>
+        <button class="btn btn-outline btn-sm" onclick="this.closest('.modal').remove()">✕</button>
+      </div>
+      <pre style="background:var(--bg);padding:12px;border-radius:8px;font-size:11px;overflow:auto;">${JSON.stringify(JSON.parse(chats), null, 2)}</pre>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function resetUserTokens(id) {
+  if (!confirm('Сбросить статистику токенов для пользователя?')) return;
+  LS.setItem('user_stats_' + id, JSON.stringify({msgs:0, tokens:0}));
+  showToast('Статистика сброшена');
+  if (currentDetailId === id) showUserDetail(id);
+}
+
+function sendUserMessage(id) {
+  const user = getUsers().find(u => u.id === id);
+  if (!user || !user.tgChatId) { showToast('У пользователя нет Telegram Chat ID'); return; }
+  
+  const msg = prompt('Введите сообщение для @' + (user.tg || user.username) + ':');
+  if (!msg) return;
+  
+  const token = LS.getItem('tg_bot_token');
+  if (!token) { showToast('Telegram бот не настроен'); return; }
+  
+  fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ chat_id: user.tgChatId, text: msg })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.ok) showToast('✓ Сообщение отправлено');
+    else showToast('Ошибка: ' + d.description);
+  })
+  .catch(() => showToast('Ошибка отправки'));
+}
+
+function loadActiveSessions() {
+  const sessions = [];
+  const now = Date.now();
+  
+  for (let i = 0; i < LS.length; i++) {
+    const key = LS.key(i);
+    if (key && key.startsWith('online_')) {
+      try {
+        const d = JSON.parse(LS.getItem(key));
+        if (now - d.ts < 90000) {
+          sessions.push(d);
+        }
+      } catch(e) {}
+    }
+  }
+  
+  const list = document.getElementById('sessions-list');
+  if (!sessions.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px 0;">Нет активных сессий</div>';
+    return;
+  }
+  
+  list.innerHTML = sessions.map(s => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div class="online-dot"></div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:500">${esc(s.username)}</div>
+        <div style="font-size:10px;color:var(--muted)">IP: ${esc(s.ip || '—')} · ID: ${s.userId}</div>
+      </div>
+      <div style="font-size:10px;color:var(--muted)">${Math.round((now - s.ts)/60000)} мин назад</div>
+      <button class="btn btn-red btn-sm" onclick="terminateSession('${s.userId}')">✕</button>
+    </div>
+  `).join('');
+}
+
+function terminateSession(userId) {
+  for (let i = 0; i < LS.length; i++) {
+    const key = LS.key(i);
+    if (key && key.includes(userId)) {
+      LS.removeItem(key);
+    }
+  }
+  loadActiveSessions();
+  loadOnline();
+  showToast('Сессия завершена');
+}
+
+function terminateAllSessions() {
+  if (!confirm('Завершить все активные сессии?')) return;
+  
+  for (let i = 0; i < LS.length; i++) {
+    const key = LS.key(i);
+    if (key && key.startsWith('online_')) {
+      LS.removeItem(key);
+    }
+  }
+  loadActiveSessions();
+  loadOnline();
+  showToast('Все сессии завершены');
+}
+
+function broadcastToFiltered() {
+  const filtered = [];
+  const users = getUsers();
+  
+  // Apply current filter
+  if (currentFilter === 'verified') {
+    filtered.push(...users.filter(u => u.verified && u.tgChatId));
+  } else if (currentFilter === 'active') {
+    const now = Date.now();
+    users.forEach(u => {
+      for (let i = 0; i < LS.length; i++) {
+        const key = LS.key(i);
+        if (key && key.startsWith('online_') && key.includes(u.id)) {
+          try {
+            const d = JSON.parse(LS.getItem(key));
+            if (now - d.ts < 90000 && u.tgChatId) {
+              filtered.push(u);
+            }
+          } catch(e) {}
+        }
+      }
+    });
+  } else if (selectedUsers.size > 0) {
+    filtered.push(...users.filter(u => selectedUsers.has(u.id) && u.tgChatId));
+  }
+  
+  if (filtered.length === 0) { showToast('Нет получателей'); return; }
+  
+  const msg = document.getElementById('broadcast-msg').value.trim();
+  if (!msg) { showToast('Введите сообщение'); return; }
+  
+  if (!confirm(`Отправить ${filtered.length} пользователям?`)) return;
+  
+  const token = LS.getItem('tg_bot_token');
+  if (!token) { showToast('Telegram бот не настроен'); return; }
+  
+  const status = document.getElementById('broadcast-status');
+  status.textContent = 'Рассылка...';
+  
+  let ok = 0, fail = 0;
+  filtered.forEach(async (u) => {
+    try {
+      const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ chat_id: u.tgChatId, text: msg })
+      });
+      const d = await r.json();
+      d.ok ? ok++ : fail++;
+    } catch(e) { fail++; }
+  });
+  
+  setTimeout(() => {
+    status.textContent = `✓ Отправлено: ${ok}, ошибок: ${fail}`;
+    showToast(`Разослано ${ok} из ${filtered.length}`);
+  }, 2000);
+}
+
+// ── TG BOT SETTINGS ───────────────────────────────
+function loadTGSettings() {
+  const token = LS.getItem('tg_bot_token') || '';
+  const inp = document.getElementById('f-tg-token'); if (inp) inp.value = token;
+  setTgl('tgl-tg-req', LS.getItem('tg_required') === 'true');
+  updateTGPill(!!token);
+}
+
+function updateTGPill(active) {
+  const p = document.getElementById('tg-status-pill'); if (!p) return;
+  p.className = 'status-pill ' + (active ? 'on' : 'off');
+  p.innerHTML = `<div class="sdot"></div>${active ? 'Настроен' : 'Не настроен'}`;
+}
+
+function saveTGSettings() {
+  const token = (document.getElementById('f-tg-token')?.value || '').trim();
+  if (!token) { showToast('Введите токен'); return; }
+  LS.setItem('tg_bot_token', token);
+  updateTGPill(true);
+  showToast('✓ Токен сохранён');
+}
+
+function removeTGToken() {
+  LS.removeItem('tg_bot_token');
+  const inp = document.getElementById('f-tg-token'); if (inp) inp.value = '';
+  updateTGPill(false); showToast('Токен удалён');
+}
+
+async function testTGBot() {
+  const token = LS.getItem('tg_bot_token');
+  const res = document.getElementById('tg-test-result');
+  if (!token) { showToast('Сначала сохраните токен'); return; }
+  if (res) { res.style.display = 'block'; res.style.color = 'var(--muted)'; res.textContent = 'Проверяю...'; }
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+    const d = await r.json();
+    if (d.ok) {
+      const b = d.result;
+      if (res) { res.style.color = 'var(--accent)'; res.textContent = `✓ Бот работает: @${b.username} (${b.first_name})`; }
+      updateTGPill(true);
+    } else {
+      if (res) { res.style.color = 'var(--red)'; res.textContent = '✕ Ошибка: ' + (d.description || 'Неверный токен'); }
+      updateTGPill(false);
+    }
+  } catch(e) { if (res) { res.style.color='var(--red)'; res.textContent='✕ Сеть недоступна'; } }
+}
+
+// ── BROADCAST ─────────────────────────────────────
+async function broadcastMsg() {
+  const token = LS.getItem('tg_bot_token');
+  if (!token) { showToast('Настройте Telegram-бота'); return; }
+  const msg = document.getElementById('broadcast-msg')?.value?.trim();
+  if (!msg) { showToast('Введите сообщение'); return; }
+  const users = getUsers().filter(u => u.tgChatId && !u.banned);
+  if (!users.length) { showToast('Нет верифицированных пользователей'); return; }
+  if (!confirm(`Разослать ${users.length} пользователям?`)) return;
+  const status = document.getElementById('broadcast-status');
+  if (status) status.textContent = 'Рассылка...';
+  let ok = 0, fail = 0;
+  for (const u of users) {
+    try {
+      const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ chat_id: u.tgChatId, text: msg, parse_mode:'HTML' })
+      });
+      (await r.json()).ok ? ok++ : fail++;
+    } catch(e) { fail++; }
+    await new Promise(r => setTimeout(r, 50));
+  }
+  if (status) status.textContent = `✓ Отправлено: ${ok}, ошибок: ${fail}`;
+  showToast(`Разослано ${ok} из ${users.length}`);
+}
+
+function loadOnline() {
+  const wrap = document.getElementById('online-list'); if (!wrap) return;
+  const badge = document.getElementById('online-count-badge');
+  const now = Date.now(); const online = [];
+  for (let i = 0; i < LS.length; i++) {
+    const key = LS.key(i);
+    if (key && key.startsWith('online_')) {
+      try { const d = JSON.parse(LS.getItem(key)); if (now-(d.ts||0) < 90000) online.push(d); } catch(e) {}
+    }
+  }
+  document.getElementById('online-cnt').textContent = online.length;
+  document.getElementById('ov-online').textContent = online.length;
+  if (badge) badge.textContent = online.length + ' онлайн';
+  if (!online.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0">Никого нет онлайн</div>'; return; }
+  wrap.innerHTML = online.map(u => {
+    const ago = Math.round((now - u.ts) / 1000);
+    const agoStr = ago < 60 ? ago+'с' : Math.round(ago/60)+'м';
+    return `<div class="online-card">
+      <div class="online-dot"></div>
+      <div class="usr-av" style="background:${u.color||'#666'};width:30px;height:30px;font-size:12px">${(u.username||'?').charAt(0).toUpperCase()}</div>
+      <div class="online-info">
+        <div class="online-name">${esc(u.username||'Гость')}</div>
+        <div class="online-ip">${esc(u.ip||'—')}</div>
+      </div>
+      <div class="online-ago">${agoStr} назад</div>
+      ${u.ip ? `<button class="btn btn-red btn-sm" onclick="blockOnlineIP('${esc(u.ip)}')">🚫 IP</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function blockOnlineIP(ip) {
+  if (!confirm('Заблокировать IP: ' + ip + '?')) return;
+  if (!blockedIPs.includes(ip)) { blockedIPs.push(ip); saveIPs(); renderIPTags(); showToast('🚫 ' + ip); }
+  else showToast('Уже заблокирован');
+}
+
+// ── LOCK ─────────────────────────────────────────
+function checkLock() {
+  const pass = LS.getItem('admin_password');
+  if (!pass) return;
+  if (document.getElementById('lock-input').value === pass) {
+    SS.setItem('admin_unlocked', 'yes');
+    document.getElementById('lock').classList.remove('show');
+  } else {
+    document.getElementById('lock-err').textContent = 'Неверный пароль';
+    document.getElementById('lock-input').value = '';
+  }
+}
+
+function initLock() {
+  if (LS.getItem('admin_password') && SS.getItem('admin_unlocked') !== 'yes') {
+    document.getElementById('lock').classList.add('show');
+    setTimeout(() => document.getElementById('lock-input').focus(), 100);
+  }
+}
+
+// ── NAV ──────────────────────────────────────────
+const NAV_TITLES = { 
+  overview:'Обзор', 
+  users:'Пользователи', 
+  status:'Статус сайта', 
+  models:'Модели ИИ', 
+  limits:'Ограничения', 
+  system:'Системный промпт', 
+  suggestions:'Подсказки', 
+  filters:'Фильтры и IP', 
+  analytics:'Графики', 
+  logs:'Логи', 
+  branding:'Внешний вид', 
+  security:'Пароли', 
+  backup:'Бэкап', 
+  danger:'Опасная зона' 
+};
+
+function nav(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('tb-title').textContent = NAV_TITLES[id] || id;
+  if (id === 'analytics') setTimeout(drawCharts, 60);
+  if (id === 'users') { 
+    loadUsers(); 
+    loadOnline(); 
+    loadTGSettings();
+    loadActiveSessions();
+  }
+  if (id === 'logs') loadLogs();
+  if (id === 'filters') loadMyIP();
+}
+
+// ── INIT ─────────────────────────────────────────
+function init() {
+  initLock();
+  siteOn = LS.getItem('site_stopped') !== 'true';
+  updateSiteUI();
+  
+  document.getElementById('f-sysprompt').value = LS.getItem('or_sys') || '';
+  document.getElementById('stop-title').value = LS.getItem('stop_title') || 'Технические работы';
+  document.getElementById('stop-desc').value = LS.getItem('stop_desc') || 'Сайт временно недоступен.';
+  document.getElementById('stop-eta').value = LS.getItem('stop_eta') || '';
+  document.getElementById('block-msg').value = LS.getItem('block_msg') || 'Извините, этот запрос не может быть обработан.';
+  document.getElementById('ip-msg').value = LS.getItem('ip_block_msg') || 'Доступ с вашего IP заблокирован.';
+  document.getElementById('lim-chars').value = LS.getItem('lim_chars') || '0';
+  document.getElementById('lim-cool').value = LS.getItem('lim_cooldown') || '3';
+  document.getElementById('lim-msgs').value = LS.getItem('lim_msgs') || '50';
+  
+  const temp = LS.getItem('temperature') || '0.7';
+  document.getElementById('f-temp').value = temp; 
+  document.getElementById('temp-val').textContent = temp;
+  document.getElementById('f-maxtok').value = LS.getItem('max_tokens') || '1000';
+  
+  setTgl('tgl-auth', LS.getItem('auth_mode') === 'true');
+  setTgl('tgl-tg-req', LS.getItem('tg_required') === 'true');
+  setTgl('tgl-maint', LS.getItem('maintenance') === 'true');
+  setTgl('tgl-sugg', LS.getItem('hide_suggestions') === 'true');
+  setTgl('tgl-case', LS.getItem('block_case') === 'true');
+  
+  blockedWords = JSON.parse(LS.getItem('blocked_words') || '[]'); 
+  renderWordTags();
+  blockedIPs = JSON.parse(LS.getItem('blocked_ips') || '[]'); 
+  renderIPTags();
+  
+  const saved = LS.getItem('adm_saved');
+  if (saved) document.getElementById('last-saved-lbl').textContent = 'Сохранено: ' + new Date(saved).toLocaleString('ru');
+  
+  loadModels(); 
+  loadLogs(); 
+  loadSuggs(); 
+  loadBranding(); 
+  updateSecStatus();
+  updateUserStats();
+  
+  document.getElementById('ov-tok').textContent = parseInt(LS.getItem('total_tokens') || '0').toLocaleString('ru');
+  startOnline(); 
+  setTimeout(drawCharts, 200);
+}
+
+// ── TOGGLES ──────────────────────────────────────
+function setTgl(id, on) { const el = document.getElementById(id); if (el) el.classList.toggle('on', on); }
+function tglClick(el, key) { el.classList.toggle('on'); if (key) LS.setItem(key, el.classList.contains('on') ? 'true' : 'false'); }
+
+// ── ONLINE ───────────────────────────────────────
+function startOnline() {
+  loadOnline(); 
+  setInterval(() => {
+    loadOnline();
+    updateUserStats();
+  }, 15000);
+}
+
+// ── SITE STATUS ──────────────────────────────────
+function toggleSite() { siteOn ? stopSite() : startSite(); }
+function stopSite() {
+  siteOn = false;
+  LS.setItem('site_stopped', 'true');
+  LS.setItem('stop_title', document.getElementById('stop-title').value);
+  LS.setItem('stop_desc', document.getElementById('stop-desc').value);
+  LS.setItem('stop_eta', document.getElementById('stop-eta').value);
+  updateSiteUI(); showToast('⏹ Сайт остановлен');
+}
+function startSite() { siteOn = true; LS.setItem('site_stopped', 'false'); updateSiteUI(); showToast('▶ Сайт запущен'); }
+function updateSiteUI() {
+  const on = siteOn;
+  document.getElementById('status-pill').className = 'status-pill ' + (on ? 'on' : 'off');
+  document.getElementById('pill-txt').textContent = on ? 'Работает' : 'Остановлен';
+  
+  const ob = document.getElementById('ov-banner'); if (ob) ob.className = 'site-banner ' + (on ? 'on' : 'off');
+  const obt = document.getElementById('ov-bt'); if (obt) obt.textContent = on ? 'Сайт активен' : 'Остановлен';
+  const obs = document.getElementById('ov-bs'); if (obs) obs.textContent = on ? 'Пользователи могут писать' : 'Показывается страница тех. работ';
+  const osb = document.getElementById('ov-site-btn'); if (osb) { osb.className = 'btn btn-sm ' + (on ? 'btn-red' : 'btn-green'); osb.textContent = on ? '⏹ Стоп' : '▶ Старт'; }
+  
+  const sb = document.getElementById('st-banner'); if (sb) sb.className = 'site-banner ' + (on ? 'on' : 'off');
+  const si = document.getElementById('st-ico'); if (si) si.textContent = on ? '🟢' : '🔴';
+  const st = document.getElementById('st-title'); if (st) st.textContent = on ? 'Сайт работает' : 'Остановлен';
+  const ss = document.getElementById('st-sub'); if (ss) ss.textContent = on ? 'Чат доступен' : 'Заблокирован';
+  const stb = document.getElementById('st-btn'); if (stb) { stb.className = 'btn btn-sm ' + (on ? 'btn-red' : 'btn-green'); stb.textContent = on ? '⏹ Остановить' : '▶ Запустить'; }
+}
+
+// ── MODELS ───────────────────────────────────────
+function loadModels() {
+  const s = LS.getItem('models_list');
+  if (s) { try { modelsList = JSON.parse(s); } catch(e) { modelsList = []; } }
+  if (!modelsList.length) {
+    const id = LS.getItem('or_model') || 'arcee-ai/trinity-large-preview:free';
+    modelsList = [{ name: id.split('/').pop().split(':')[0], id, key: '', enabled: true }];
+    saveModels();
+  }
+  renderModels(); pingAll();
+}
+function saveModels() {
+  LS.setItem('models_list', JSON.stringify(modelsList));
+  const a = modelsList.find(m => m.enabled);
+  if (a) { LS.setItem('or_model', a.id); if (a.key) LS.setItem('or_model_key', a.key); else LS.removeItem('or_model_key'); }
+}
+function renderModels() {
+  const c = document.getElementById('models-list');
+  if (!c) return;
+  if (!modelsList.length) { c.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;border:1.5px dashed var(--border);border-radius:10px;margin-bottom:16px">Нет моделей</div>'; return; }
+  c.innerHTML = modelsList.map((m, i) => `
+    <div class="model-card ${m.enabled ? 'active' : ''}" id="mc-${i}">
+      <div class="model-ico">${(m.name||'?').charAt(0).toUpperCase()}</div>
+      <div class="model-info" id="mi-${i}">
+        <div class="model-name">${esc(m.name)} ${m.enabled ? '<span class="active-badge">активна</span>' : ''}</div>
+        <div class="model-id">${esc(m.id)}</div>
+        <div class="model-key ${m.key ? 'custom' : 'default'}">${m.key ? '🔑 Свой ключ' : '🔑 По умолчанию'}</div>
+        <div class="ping-row" id="pr-${i}"><div class="ping-dot wait"></div><span class="ping-ms wait">Проверка...</span></div>
+      </div>
+      <div class="model-actions">
+        <button class="mi-tgl ${m.enabled ? 'on' : ''}" id="mt-${i}" onclick="toggleModel(${i})"></button>
+        <button class="mi-btn" onclick="editModel(${i})">✏</button>
+        <button class="mi-btn del" onclick="deleteModel(${i})">✕</button>
+      </div>
+    </div>`).join('');
+}
+function toggleModel(i) {
+  modelsList[i].enabled = !modelsList[i].enabled; saveModels();
+  const card = document.getElementById('mc-' + i); if (card) card.className = 'model-card ' + (modelsList[i].enabled ? 'active' : '');
+  const tgl = document.getElementById('mt-' + i); if (tgl) tgl.classList.toggle('on', modelsList[i].enabled);
+  const info = document.getElementById('mi-' + i);
+  if (info) info.querySelector('.model-name').innerHTML = esc(modelsList[i].name) + (modelsList[i].enabled ? ' <span class="active-badge">активна</span>' : '');
+  showToast(modelsList[i].enabled ? '✓ Включена' : 'Выключена');
+}
+function editModel(i) {
+  const m = modelsList[i];
+  const infoEl = document.getElementById('mi-' + i);
+  if (!infoEl) return;
+  infoEl.innerHTML = `
+    <div class="model-edit-form">
+      <input id="en-${i}" value="${esc(m.name)}" placeholder="Название"/>
+      <input id="ei-${i}" value="${esc(m.id)}" placeholder="ID модели"/>
+      <input id="ek-${i}" type="password" value="${esc(m.key||'')}" placeholder="API ключ (пусто = по умолчанию)"/>
+      <div style="display:flex;gap:7px"><button class="btn btn-dark btn-sm" onclick="saveEdit(${i})">✓ Сохранить</button><button class="btn btn-outline btn-sm" onclick="renderModels()">Отмена</button></div>
+    </div>`;
+}
+function saveEdit(i) {
+  const name = document.getElementById('en-'+i)?.value.trim();
+  const id = document.getElementById('ei-'+i)?.value.trim();
+  const key = document.getElementById('ek-'+i)?.value.trim();
+  if (!id) { showToast('ID обязателен'); return; }
+  modelsList[i] = { ...modelsList[i], name: name || id.split('/').pop().split(':')[0], id, key: key || '' };
+  saveModels(); renderModels(); showToast('✓ Обновлена');
+}
+function deleteModel(i) { if (!confirm('Удалить?')) return; modelsList.splice(i, 1); saveModels(); renderModels(); showToast('Удалена'); }
+function addModel() {
+  const name = document.getElementById('new-m-name').value.trim();
+  const id = document.getElementById('new-m-id').value.trim();
+  const key = document.getElementById('new-m-key').value.trim();
+  if (!id) { showToast('Введите ID модели'); return; }
+  modelsList.push({ name: name || id.split('/').pop().split(':')[0], id, key: key || '', enabled: false });
+  saveModels(); renderModels();
+  document.getElementById('new-m-name').value = '';
+  document.getElementById('new-m-id').value = '';
+  document.getElementById('new-m-key').value = '';
+  showToast('✓ Добавлена');
+}
+function saveModelParams() { LS.setItem('temperature', document.getElementById('f-temp').value); LS.setItem('max_tokens', document.getElementById('f-maxtok').value); showToast('✓ Параметры сохранены'); }
+
+// ── PING ─────────────────────────────────────────
+async function pingOne(i) {
+  const m = modelsList[i]; if (!m) return;
+  const pr = document.getElementById('pr-' + i);
+  if (pr) pr.innerHTML = '<div class="ping-dot wait"></div><span class="ping-ms wait">Проверка...</span>';
+  const t0 = performance.now();
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', { method:'POST', headers:{'Authorization':'Bearer '+(m.key||DEFAULT_KEY),'Content-Type':'application/json'}, body: JSON.stringify({ model: m.id, messages:[{role:'user',content:'Hi'}], max_tokens:1 }) });
+    const ms = Math.round(performance.now() - t0);
+    const cls = res.ok ? (ms < 1500 ? 'ok' : ms < 4000 ? 'slow' : 'err') : 'err';
+    const lbl = res.ok ? ms + ' мс' : 'Ошибка';
+    const pct = Math.min(100, Math.max(5, 100 - ms / 60));
+    const col = cls === 'ok' ? 'var(--accent)' : cls === 'slow' ? 'var(--orange)' : 'var(--red)';
+    if (pr) pr.innerHTML = `<div class="ping-dot ${cls}"></div><span class="ping-ms ${cls}">${lbl}</span><div class="ping-bar"><div class="ping-fill" style="width:${pct}%;background:${col}"></div></div><button class="ping-ref" onclick="pingOne(${i})">↺</button>`;
+  } catch(e) {
+    if (pr) pr.innerHTML = `<div class="ping-dot err"></div><span class="ping-ms err">Недоступна</span><button class="ping-ref" onclick="pingOne(${i})">↺</button>`;
+  }
+}
+function pingAll() { modelsList.forEach((_, i) => pingOne(i)); }
+
+// ── SYSTEM PROMPT ────────────────────────────────
+function preset(k) { document.getElementById('f-sysprompt').value = PRESETS[k] || ''; showToast('Пресет загружен'); }
+function saveSystem() { LS.setItem('or_sys', document.getElementById('f-sysprompt').value.trim()); showToast('✓ Промпт сохранён'); }
+function clearSystem() { document.getElementById('f-sysprompt').value = ''; LS.removeItem('or_sys'); showToast('Промпт очищен'); }
+
+// ── SUGGESTIONS ──────────────────────────────────
+function loadSuggs() { const list = JSON.parse(LS.getItem('custom_suggestions') || '[]'); renderSuggList(list.length ? list : [...DEFAULT_SUGGS]); }
+function renderSuggList(items) { 
+  const suggList = document.getElementById('sugg-list');
+  if (suggList) suggList.innerHTML = items.map((s, i) => `<div class="sugg-row"><input class="sugg-inp" id="si-${i}" value="${esc(s)}" placeholder="Текст подсказки..."/><button class="sugg-rm" onclick="removeSugg(${i})">✕</button></div>`).join(''); 
+}
+function getSuggItems() { 
+  const inputs = document.querySelectorAll('.sugg-inp');
+  return Array.from(inputs).map(el => el.value); 
+}
+function addSugg() { const items = getSuggItems(); items.push(''); renderSuggList(items); const inps = document.querySelectorAll('.sugg-inp'); if (inps.length) inps[inps.length-1].focus(); }
+function removeSugg(i) { const items = getSuggItems(); items.splice(i, 1); renderSuggList(items); }
+function saveSuggs() { LS.setItem('custom_suggestions', JSON.stringify(getSuggItems().filter(s => s.trim()))); showToast('✓ Подсказки сохранены'); }
+function resetSuggs() { renderSuggList([...DEFAULT_SUGGS]); LS.removeItem('custom_suggestions'); showToast('Сброшено'); }
+
+// ── IP BLOCKING ──────────────────────────────────
+async function loadMyIP() {
+  try {
+    const r = await fetch('https://api.ipify.org?format=json');
+    const d = await r.json();
+    const el = document.getElementById('my-ip-val'); if (el) { el.textContent = d.ip; el.dataset.ip = d.ip; }
+    const btn = document.getElementById('block-my-btn'); if (btn) btn.style.display = '';
+  } catch(e) { const el = document.getElementById('my-ip-val'); if (el) el.textContent = 'Не удалось определить'; }
+}
+function addIP() {
+  const inp = document.getElementById('new-ip'); const v = (inp.value || '').trim();
+  if (!v) { showToast('Введите IP'); return; }
+  if (blockedIPs.includes(v)) { showToast('Уже заблокирован'); inp.value = ''; return; }
+  blockedIPs.push(v); inp.value = ''; saveIPs(); renderIPTags(); showToast('🚫 Заблокирован: ' + v);
+}
+function blockMyIP() {
+  const el = document.getElementById('my-ip-val'); const ip = el?.dataset.ip || el?.textContent;
+  if (!ip || ip.includes(' ')) { showToast('IP не определён'); return; }
+  if (!confirm('Заблокировать свой IP ' + ip + '?\nВы потеряете доступ к чату!')) return;
+  if (!blockedIPs.includes(ip)) { blockedIPs.push(ip); saveIPs(); renderIPTags(); showToast('🚫 ' + ip + ' заблокирован'); }
+}
+function removeIP(v) { blockedIPs = blockedIPs.filter(x => x !== v); saveIPs(); renderIPTags(); showToast('✓ Разблокирован: ' + v); }
+function renderIPTags() {
+  const w = document.getElementById('ip-tags'); const lbl = document.getElementById('ip-cnt-lbl');
+  if (lbl) lbl.textContent = blockedIPs.length + ' IP';
+  if (!blockedIPs.length) { if (w) w.innerHTML = '<span class="empty-tags">Список пуст — все разрешены</span>'; return; }
+  if (w) w.innerHTML = blockedIPs.map(v => `<span class="tag-item ip">${esc(v)}<button onclick="removeIP('${esc(v)}')">×</button></span>`).join('');
+}
+function saveIPs() { LS.setItem('blocked_ips', JSON.stringify(blockedIPs)); LS.setItem('ip_block_msg', document.getElementById('ip-msg')?.value || ''); }
+
+// ── WORD FILTER ──────────────────────────────────
+function addWord() { const inp = document.getElementById('new-word'); const v = (inp.value || '').trim(); if (!v || blockedWords.includes(v)) { inp.value = ''; return; } blockedWords.push(v); inp.value = ''; saveWords(); renderWordTags(); }
+function removeWord(v) { blockedWords = blockedWords.filter(x => x !== v); saveWords(); renderWordTags(); }
+function renderWordTags() { const w = document.getElementById('word-tags'); if (!w) return; if (!blockedWords.length) { w.innerHTML = '<span class="empty-tags">Список пуст</span>'; return; } w.innerHTML = blockedWords.map(v => `<span class="tag-item word">${esc(v)}<button onclick="removeWord('${esc(v)}')">×</button></span>`).join(''); }
+function saveWords() { LS.setItem('blocked_words', JSON.stringify(blockedWords)); LS.setItem('block_msg', document.getElementById('block-msg')?.value || ''); }
+
+// ── BRANDING ─────────────────────────────────────
+function loadBranding() {
+  const name = LS.getItem('site_name') || 'Aura'; const logo = LS.getItem('site_logo') || '';
+  const font = LS.getItem('site_font') || 'Geist Mono'; const size = LS.getItem('site_font_size') || '13.5';
+  document.getElementById('f-sitename').value = name;
+  document.getElementById('f-font').value = font;
+  document.getElementById('f-fsize').value = size; document.getElementById('fsize-val').textContent = size;
+  updateBrandEls(name, logo);
+}
+function updateBrandEls(name, logo) {
+  ['sb-mark','logo-preview'].forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    if (logo) { el.innerHTML = `<img src="${logo}" alt=""/>` ; el.style.background = 'transparent'; }
+    else { el.textContent = name.charAt(0).toUpperCase(); el.style.background = ''; }
+  });
+  const sn = document.getElementById('sb-sitename'); if (sn) sn.textContent = name;
+}
+function previewBrand() { const name = document.getElementById('f-sitename').value || 'Aura'; updateBrandEls(name, LS.getItem('site_logo') || ''); }
+function uploadLogo(inp) {
+  const file = inp.files[0]; if (!file) return;
+  const r = new FileReader(); r.onload = e => { LS.setItem('site_logo', e.target.result); updateBrandEls(document.getElementById('f-sitename').value || 'Aura', e.target.result); showToast('✓ Логотип загружен'); }; r.readAsDataURL(file);
+}
+function removeLogo() { LS.removeItem('site_logo'); updateBrandEls(document.getElementById('f-sitename').value || 'Aura', ''); showToast('Логотип удалён'); }
+function saveBranding() {
+  const name = document.getElementById('f-sitename').value.trim() || 'Aura';
+  LS.setItem('site_name', name); LS.setItem('site_font', document.getElementById('f-font').value); LS.setItem('site_font_size', document.getElementById('f-fsize').value);
+  updateBrandEls(name, LS.getItem('site_logo') || ''); showToast('✓ Сохранено');
+}
+
+// ── SECURITY ─────────────────────────────────────
+function updateSecStatus() {
+  const a = document.getElementById('adm-pass-status'); if (a) a.textContent = LS.getItem('admin_password') ? '✓ Пароль установлен' : 'Не установлен — панель открыта';
+  const c = document.getElementById('chat-pass-status'); if (c) c.textContent = LS.getItem('chat_password') ? '✓ Пароль установлен' : 'Чат открыт для всех';
+}
+function setAdmPass() {
+  const cur = LS.getItem('admin_password'); const entered = document.getElementById('adm-cur').value; const np = document.getElementById('adm-new').value;
+  if (cur && entered !== cur) { showToast('Неверный текущий пароль'); return; }
+  if (!np || np.length < 4) { showToast('Минимум 4 символа'); return; }
+  LS.setItem('admin_password', np); SS.setItem('admin_unlocked', 'yes');
+  document.getElementById('adm-cur').value = ''; document.getElementById('adm-new').value = '';
+  updateSecStatus(); showToast('✓ Пароль установлен');
+}
+function removeAdmPass() { if (!confirm('Убрать пароль?')) return; LS.removeItem('admin_password'); document.getElementById('adm-cur').value = ''; document.getElementById('adm-new').value = ''; updateSecStatus(); showToast('Пароль удалён'); }
+function setChatPass() { const p = document.getElementById('chat-new').value; if (!p) { showToast('Введите пароль'); return; } LS.setItem('chat_password', p); document.getElementById('chat-new').value = ''; updateSecStatus(); showToast('✓ Установлен'); }
+function removeChatPass() { LS.removeItem('chat_password'); document.getElementById('chat-new').value = ''; updateSecStatus(); showToast('Пароль удалён'); }
+
+// ── BACKUP ───────────────────────────────────────
+function exportSettings() {
+  const data = { version: '1.0', exported: new Date().toISOString(), settings: {} };
+  BACKUP_KEYS.forEach(k => { const v = LS.getItem(k); if (v != null) data.settings[k] = v; });
+  const b = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'aura-settings-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
+  showToast('✓ Экспортировано');
+}
+function importSettings(inp) {
+  const file = inp.files[0]; if (!file) return;
+  const reader = new FileReader(); reader.onload = e => {
+    try { const data = JSON.parse(e.target.result); if (!data.settings) throw new Error('Неверный формат'); if (!confirm('Импортировать? Настройки будут перезаписаны.')) return; Object.entries(data.settings).forEach(([k,v]) => LS.setItem(k, v)); showToast('✓ Импортировано — перезагрузка...'); setTimeout(() => location.reload(), 1000); } catch(err) { showToast('Ошибка: ' + err.message); }
+  }; reader.readAsText(file); inp.value = '';
+}
+
+// ── CHARTS ───────────────────────────────────────
+function drawCharts() {
+  const logs = JSON.parse(LS.getItem('chat_logs') || '[]');
+  const days = [], req = [], tok = [];
+  for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate()-i); const key = d.toISOString().slice(0,10); days.push(d.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'})); const dl = logs.filter(l => l.ts?.slice(0,10) === key); req.push(dl.length); tok.push(dl.reduce((s,l) => s+(l.tokens||0), 0)); }
+  const today = new Date().toISOString().slice(0,10); const tl = logs.filter(l => l.ts?.slice(0,10) === today);
+  const hLbl = [], hData = [];
+  for (let h = 0; h < 24; h+=2) { hLbl.push(h+':00'); hData.push(tl.filter(l => new Date(l.ts).getHours() >= h && new Date(l.ts).getHours() < h+2).length); }
+  const mc = {}; logs.forEach(l => { if (l.model) { const k = l.model.split('/').pop().split(':')[0]; mc[k] = (mc[k]||0)+1; } });
+  const opts = { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false},ticks:{font:{family:'Geist Mono',size:9},color:'#9a9790'}},y:{grid:{color:'#f0ede8'},ticks:{font:{family:'Geist Mono',size:9},color:'#9a9790'},beginAtZero:true}} };
+  const mk = (id, type, labels, data, color) => { const c = document.getElementById(id); if (!c) return; if (charts[id]) charts[id].destroy(); charts[id] = new Chart(c, { type, data:{labels,datasets:[{data,backgroundColor:color,borderColor:color,borderWidth:type==='line'?2:0,borderRadius:type==='bar'?4:0,tension:.4,fill:false,pointRadius:3}]}, options:opts }); };
+  mk('ch-today','bar',hLbl,hData,'#1e6b3c');
+  mk('ch-days','bar',days,req,'#1e6b3c');
+  mk('ch-tokens','line',days,tok,'#d97706');
+  document.getElementById('ov-req').textContent = logs.length;
+  const mc_c = document.getElementById('ch-models');
+  if (mc_c && Object.keys(mc).length) { if (charts['ch-models']) charts['ch-models'].destroy(); charts['ch-models'] = new Chart(mc_c, { type:'doughnut', data:{labels:Object.keys(mc),datasets:[{data:Object.values(mc),backgroundColor:['#1e6b3c','#d97706','#1d4ed8','#c0392b','#7c3aed','#0891b2']}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{family:'Geist Mono',size:11},color:'#181714',padding:12}}}} }); }
+}
+
+// ── LOGS ─────────────────────────────────────────
+function loadLogs() {
+  const logs = JSON.parse(LS.getItem('chat_logs') || '[]');
+  document.getElementById('ov-req').textContent = logs.length;
+  const tb = document.getElementById('logs-body');
+  if (!logs.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:28px">Логов нет</td></tr>'; return; }
+  tb.innerHTML = logs.map((l, i) => {
+    const t = new Date(l.ts).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const mod = (l.model||'—').split('/').pop().split(':')[0];
+    return `<tr style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('open')"><td style="color:var(--muted)">${logs.length-i}</td><td style="color:var(--muted);font-size:11px">${t}</td><td><span class="tag-pill tag-green">${esc(mod)}</span></td><td style="color:var(--muted)">${(l.tokens||0).toLocaleString('ru')}</td><td class="td-cut">${esc(l.q||'')}</td></tr><tr class="log-detail"><td colspan="5"><div class="ld-q">❓ ${esc(l.q||'')}</div><div>💬 ${esc((l.a||'').slice(0,500))}</div></td></tr>`;
+  }).join('');
+}
+function exportLogs() { const b = new Blob([LS.getItem('chat_logs')||'[]'],{type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download='aura-logs-'+new Date().toISOString().slice(0,10)+'.json'; a.click(); showToast('✓ Скачано'); }
+function clearLogs() { if (!confirm('Удалить все логи?')) return; LS.removeItem('chat_logs'); loadLogs(); drawCharts(); showToast('Логи удалены'); }
+
+// ── SAVE ALL ─────────────────────────────────────
+function saveAll() {
+  saveSystem(); saveWords(); saveIPs(); saveModelParams(); saveBranding(); saveSuggs();
+  LS.setItem('stop_title', document.getElementById('stop-title').value);
+  LS.setItem('stop_desc', document.getElementById('stop-desc').value);
+  LS.setItem('stop_eta', document.getElementById('stop-eta').value);
+  LS.setItem('lim_chars', document.getElementById('lim-chars').value);
+  LS.setItem('lim_cooldown', document.getElementById('lim-cool').value);
+  LS.setItem('lim_msgs', document.getElementById('lim-msgs').value);
+  const now = new Date().toISOString(); LS.setItem('adm_saved', now);
+  document.getElementById('last-saved-lbl').textContent = 'Сохранено: ' + new Date(now).toLocaleString('ru');
+  showToast('✓ Всё сохранено');
+}
+
+// ── DANGER ───────────────────────────────────────
+function resetTokens() { LS.setItem('total_tokens','0'); document.getElementById('ov-tok').textContent='0'; showToast('Сброшено'); }
+function resetAll() { if (!confirm('Сбросить ВСЁ кроме паролей?')) return; const ap=LS.getItem('admin_password'); const cp=LS.getItem('chat_password'); LS.clear(); if(ap)LS.setItem('admin_password',ap); if(cp)LS.setItem('chat_password',cp); showToast('Сброшено'); setTimeout(()=>location.reload(),600); }
+
+// ── HELPERS ──────────────────────────────────────
+function togglePass(id, btn) { const el = document.getElementById(id); if (!el) return; el.type = el.type==='password'?'text':'password'; btn.textContent = el.type==='password'?'👁':'🙈'; }
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+
+// Запуск инициализации после загрузки DOM
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
